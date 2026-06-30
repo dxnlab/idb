@@ -2,7 +2,6 @@
   "name": "@dxnlab/idb",
   "version": "0.0.2",
   "description": "indexeddb-decorator; Simplify indexeddb(https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) usage with Typescript decorator wrapper (stage3; https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/#decorators)",
-  "license": "BSD-3-Clause",
   "author": "yg.song <yg.song@dxnlab.com>",
   "browser": "./src/index.ts",
   "keywords": [
