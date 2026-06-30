@@ -1,0 +1,52 @@
+{
+  "name": "@dxnlab/idb",
+  "version": "0.0.2",
+  "description": "indexeddb-decorator; Simplify indexeddb(https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) usage with Typescript decorator wrapper (stage3; https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/#decorators)",
+  "license": "BSD-3-Clause",
+  "author": "yg.song <yg.song@dxnlab.com>",
+  "browser": "./src/index.ts",
+  "keywords": [
+    "idb",
+    "indexeddb",
+    "decorator"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "@wdio/browser-runner": "^9.28.0",
+    "@wdio/cli": "^9.28.0",
+    "@wdio/globals": "^9.28.0",
+    "@wdio/logger": "^9.29.1",
+    "@wdio/mocha-framework": "^9.28.0",
+    "@wdio/spec-reporter": "^9.28.0",
+    "aria-query": "^5.3.2",
+    "css-shorthand-properties": "1.1.2",
+    "css-value": "0.0.1",
+    "deepmerge-ts": "^7.1.5",
+    "expect": "^30.4.1",
+    "expect-webdriverio": "^5.6.8",
+    "grapheme-splitter": "1.0.4",
+    "jest-matcher-utils": "^30.4.1",
+    "jest-util": "^30.4.1",
+    "lodash.clonedeep": "4.5.0",
+    "lodash.flattendeep": "^4.4.0",
+    "lodash.merge": "^4.6.2",
+    "lodash.pickby": "^4.6.0",
+    "lodash.zip": "^4.2.0",
+    "minimatch": "^10.2.5",
+    "mocha": "^11.7.6",
+    "p-iteration": "^1.1.8",
+    "rgb2hex": "^0.2.5",
+    "split2": "^4.2.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "ws": "^8.21.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test:all": "wdio run ./wdio.conf.ts > wdio.test.all.log",
+    "test:spec": "wdio run ./wdio.conf.ts --verbose --spec "
+  }
+}
