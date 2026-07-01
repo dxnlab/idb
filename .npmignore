@@ -1,0 +1,8 @@
+/data
+/docs
+/examples
+/node_modules
+future.md
+pnpm-lock.yaml
+pnpm-workspace.yaml
+wdio.conf.ts
