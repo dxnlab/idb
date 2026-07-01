@@ -2,26 +2,33 @@
   "name": "@dxnlab/idb",
   "version": "0.0.2",
   "description": "indexeddb-decorator; Simplify indexeddb(https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) usage with Typescript decorator wrapper (stage3; https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/#decorators)",
-  "author": "yg.song <yg.song@dxnlab.com>",
-  "browser": "./src/index.ts",
   "keywords": [
     "idb",
     "indexeddb",
     "decorator"
   ],
-  "repository": "github:dxnlab/idb",
   "homepage": "https://github.com/dxnlab/idb#readme",
   "bugs": {
     "url": "https://github.com/dxnlab/idb/issues"
   },
-  "categories": [
-    "Data Science", 
-    "Database", 
-    "Data Management"
-  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dxnlab/idb.git"
+  },
+  "author": "yg.song <yg.song@dxnlab.com>",
   "type": "module",
   "main": "dist/index.js",
+  "browser": "./src/index.ts",
   "types": "dist/index.d.ts",
+  "directories": {
+    "doc": "docs",
+    "example": "examples"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test:all": "wdio run ./wdio.conf.ts > wdio.test.all.log",
+    "test:spec": "wdio run ./wdio.conf.ts --verbose --spec "
+  },
   "devDependencies": {
     "@types/node": "^25.9.3",
     "@wdio/browser-runner": "^9.28.0",
@@ -56,9 +63,9 @@
   "engines": {
     "node": ">=12.20"
   },
-  "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "test:all": "wdio run ./wdio.conf.ts > wdio.test.all.log",
-    "test:spec": "wdio run ./wdio.conf.ts --verbose --spec "
-  }
+  "categories": [
+    "Data Science",
+    "Database",
+    "Data Management"
+  ]
 }
