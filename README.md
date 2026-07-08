@@ -53,8 +53,8 @@ class ItemDB {
      * Async Items generator
      */
     @reads
-    public async *items({items}, query?, count=0) {
-        return items.valueGenerator(query, count);
+    public async *items({items}, query?, direction='next') {
+        return items.valueGenerator({query, direction});
     }
 }
 
@@ -199,8 +199,8 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
 
   // is identical to:
   @reads('store')
-  async *queryByValueIdenticalTo({store}, query:IDBKeyRange, count:number) {
-    const cursor = store.openCursor(query, count);
+  async *queryByValueIdenticalTo({store}, query:IDBKeyRange, direction:IDBCursorDirection) {
+    const cursor = store.openCursor(query, direction);
     while(cursor) {
         yield cursor.value;
         cursor.continue();
@@ -208,18 +208,87 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
   }
   ```
 
+5. Wrapping `AsyncGenerator` query (<=0.0.3)
+
   ```typescript
-  // and also cursor/keyCursor supported
-  @reads('store')
-  async otherGenerators({store}) {
-    // openGenerator(query?, count?)
-    for await(const cursor of store.openGenerator()) {
-        // DO whith cursor:IDBCursorWithValue
+  @idb
+  class Foo {
+    /**
+     * Using AsyncGenerator
+    *  - openGenerator; openCursor & using cursor:IDBCursorWithValue instance as-is
+    *  - valueGenerator; openCursor & using cursor.value:any
+    *  - keyGenerator; openKeyCursor & using cursor.key
+    * @param {
+    *   query?:IDBValidKey|IDBKeyRange; passed on openCursor
+    *   direction?:'next' | 'nextunique' | 'prev' | 'prevunique'
+    *   having?:(cursorValue:any)=>boolean; yields the cursor retrieval value at true,
+    *     alike "SELECT ... HAVING" statement at SQL.
+    * }
+    */
+    @reads('store')
+    async runWithGenerators({store}) {
+        // openGenerator({query?, direction?, having?})
+        for await(const cursor of store.openGenerator()) {
+            // DO whith cursor:IDBCursorWithValue
+        }
+
+        // keyGenerator({query?, direction?, having?})
+        for await (const key of store.keyGenerator()) {
+            // DO with key == cursor.key
+        }
+    }
+  }
+  ```
+  6. Wrapping advanced query feature (<=0.0.3)
+
+  ```typescript
+
+
+  @idb
+  class Bar {
+    /**
+     * 
+     */
+    @reads('store')
+    public *searchItems({store}, category:string, minPrice:number, maxPrice:number) {
+        /**
+         * 'category' has its index by name "category" but price doesn't.
+         *   open a cursor with the selected category, 
+         *   then filter those at price range with "HAVING" validator.
+         */
+        const stmt = prepare(store)
+            .range('category == ?')
+            .having(({price})=> minPrice <= price && price <= maxPrice);
+        // statement 
+        for await (const item of stmt.execute(category)) {
+            yield item;
+        }
     }
 
-    // keyGenerator(query?, count?)
-    for await (const key of store.keyGenerator()) {
-        // DO with key == cursor.key
+    /**
+     * Simpler bounds
+     */
+    @reads('store')
+    public *boundedItemsWithinPeriod({store}, fromDate:Date, tillDate:Date) {
+        const stmt = prepare(store)
+            .range('released_date > ?')
+            .range('released_date <= ?');
+        return stmt.execute(fromDate, tillDate);
+    }
+
+    /**
+     * Actual value bindings
+     */
+    @reads('store')
+    public *boundedItemsWithPeriodAvailable({store}, fromDate:Date, tillDate:Date) {
+        const stmt = prepare(store)
+            .range('released_date > from')
+            .range('released_date <= till')
+            .having(({stock_count})=>0<stock_count);
+        return stmt.execute({ 
+            from: fromDate,
+            till: tillDate,
+        });
     }
   }
 
@@ -229,7 +298,6 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
 
   - [x] [Migration](migration.md)
   - [x] [Proxies](proxies.md)
-  - [ ] [Future](future.md)
   - [ ] Examples
 
 
@@ -242,3 +310,7 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
   - promise request wrapper
   - with in transaction wrapper
   - @author yg.song
+
+- (expecting) 2026.Jul.14 `v0.0.3` update
+  - (fixed) `IndexProxy` getter at `StoreProxy` instance property.
+  - Advanced generator wrapper using `prepare`, `range`, `having`

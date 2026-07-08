@@ -13,17 +13,15 @@ async function wrapProxy(builder:()=>May<IDBTransaction>) {
   const storeNames = Array.from(tx.objectStoreNames);
   const storeSingulars:{[store:string]:StoreProxy} = {};
 
-  return Object.defineProperties(tx, Object.fromEntries(storeNames.map((name:string)=>[
-    name,
-    {
-      get() {
-        if(!storeSingulars?.[name]) {
-          storeSingulars[name] = new StoreProxy(tx, name);
-        }
-        return storeSingulars[name];
+  storeNames.map((name:string)=>{
+    Object.defineProperty(tx, name, { get() {
+      if(!storeSingulars?.[name]) {
+        storeSingulars[name] = new StoreProxy(tx, name);
       }
-    }
-  ])));
+      return storeSingulars[name];
+    }})
+  });
+  return tx;
 }
 
 

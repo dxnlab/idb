@@ -1,5 +1,5 @@
 import { expect } from "expect-webdriverio";
-import { appendRequestHandlers, promiseRequest } from "./common";
+import { appendRequestHandlers, promiseRequest, range } from "./common";
 
 
 describe('test common wrappers', async () => {

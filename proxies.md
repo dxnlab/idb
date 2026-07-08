@@ -125,7 +125,7 @@ async getIndexMethods({store}) {
     // IDBIndex instance
     const legacyIndex = store.index('idx_name');
     // proxied index getter
-    const proxiedIndex = store.['idx_name'] || store.idx_name;
+    const proxiedIndex = store['idx_name'] || store.idx_name;
 
     // raw target getter; true
     return legacyIndex === proxiedIndex.index;
@@ -153,9 +153,13 @@ async openCursor(query?, direction?):Promise<IDBCursorWithValue>
 async openKeyCursor(query?, direction?):Promise<IDBCursor>
 
 // generators
-async *openGeneartor(query?, direction?):AsyncGenerator<IDBCursorWithValue>
-async *valueGenerator(query?, direction?):AsyncGenerator<any>
-async *keyGenerator(query?, directin?):AsyncGenerator<IDBCursor>
+/**
+ * build cursor out of (query, direction) 
+ * then yields cursor/key/value "where" condition meets.
+ */
+async *openGeneartor({query?, direction?, where?}):AsyncGenerator<IDBCursorWithValue>
+async *valueGenerator({query?, direction?, where?}):AsyncGenerator<any>
+async *keyGenerator({query?, direction?, where?}):AsyncGenerator<IDBCursor>
 
 ```
 

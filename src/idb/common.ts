@@ -38,22 +38,47 @@ export function promisedRequest<R>(builder:RequestBuilder, handlerBuilder?:Reque
   }
 }
 
-
+export function range<T extends IDBValidKey>(min:T|null|undefined=undefined, max:T|null|undefined=undefined, minOpen:boolean=false, maxOpen:boolean=false):IDBKeyRange {
+  switch (true) {
+    // min & max set
+    case min!=undefined && max!=undefined:
+      return min == max 
+        ? IDBKeyRange.only(min) 
+        : IDBKeyRange.bound(min, max, minOpen, maxOpen);
+    // min set
+    case min!=undefined && max==undefined:
+      return IDBKeyRange.lowerBound(min, minOpen);
+    // max set
+    case min==undefined && max!=undefined:
+      return IDBKeyRange.upperBound(max, maxOpen);
+    // min & max lost
+    case min==undefined && max==undefined:
+      throw new Error('Invalid range: both min and max are undefined');
+  }
+}
 
 export class Queriable<T extends IDBObjectStore|IDBIndex> {
+
+
   constructor(protected basis:T){}
 
   /** bind request */
-  public get keyPath() { return (this.basis as any).keyPath; }
+  public get keyPath():string|string[] { 
+    return (this.basis as any).keyPath; 
+  }
+  public get keyPathes():string[] { 
+    const path = this.keyPath;
+    return Array.isArray(path) ? path : [path];
+  }
   public get name() { return (this.basis as any).name; }
-  protected async binds(fnname:string, ...args:any[]) {
+  protected async binds<T>(fnname:string, ...args:any[]) {
     // @ts-ignore
-    return await promiseRequest(this.basis[fnname](...args));
+    return await promiseRequest<T>(this.basis[fnname](...args));
   }
 
   // IDB<Target>.count
   public async count(query?:IDBValidKey|IDBKeyRange) {
-    return await promiseRequest(this.basis.count(query));
+    return await promiseRequest<number>(this.basis.count(query));
   }
 
   public async get(key:IDBValidKey) {
@@ -63,7 +88,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
 
   // IDB<Target>.getKey
   public async getKey(key:IDBValidKey) {
-    return await promiseRequest(this.basis.getKey(key));
+    return await promiseRequest<IDBValidKey>(this.basis.getKey(key));
   }
 
   // IDB<Target>.getAll
@@ -73,7 +98,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
 
   // IDB<Target>.getAllKeys
   public async getAllKeys(query?:IDBValidKey|IDBKeyRange, count?:number) {
-    return await promiseRequest(this.basis.getAllKeys(query, count));
+    return await promiseRequest<IDBValidKey>(this.basis.getAllKeys(query, count));
   }
 
   // !Disclaimer
@@ -84,12 +109,12 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
 
   // IDB<Target>.openCursor
   public async openCursor(query?:IDBValidKey|IDBKeyRange, direction?:IDBCursorDirection) {
-    return await promiseRequest(this.basis.openCursor(query, direction));
+    return await promiseRequest<IDBCursorWithValue>(this.basis.openCursor(query, direction));
   }
 
   // IDB<Target>.openKeyCursor
   public async openKeyCursor(query?:IDBValidKey|IDBKeyRange, direction?:IDBCursorDirection) {
-    return await promiseRequest(this.basis.openKeyCursor(query, direction));
+    return await promiseRequest<IDBCursor>(this.basis.openKeyCursor(query, direction));
 
   }
 
@@ -102,44 +127,43 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
    *   // DO with cursor
    * }
    */
-  public async *openGenerator(query?:IDBValidKey|IDBKeyRange, direction?:IDBCursorDirection) {
-    const cursor = await this.openCursor(query, direction);
+
+  protected async *generator(requestCursor:Function, retrieval:Function, {query, direction, having}:{
+      query?:IDBValidKey|IDBKeyRange,
+      direction?:IDBCursorDirection,
+      having?:(it:any)=>boolean,
+    }={}) {
+    const cursor = await requestCursor(query, direction);
     while(cursor) {
-      yield cursor;
-      cursor.continue();
+      const ret = retrieval(cursor);
+      if(!having || having(ret)) {
+        yield ret;
+      }
     }
   }
 
-  /**
-   * open query generator, with values only
-   * @param query 
-   * @param direction 
-   * 
-   * for await (const value of target.valueGenerator()) {
-   *  // DO with value 
-   * }
-   * 
-   */
-  public async *valueGenerator(query?:IDBValidKey|IDBKeyRange, direction?:IDBCursorDirection) {
-    for await(const c of this.openGenerator(query, direction)) {
-      yield c.value;
-    }
+  public async *openGenerator(param:{
+      query?:IDBValidKey|IDBKeyRange,
+      direction?:IDBCursorDirection,
+      having?:(it:any)=>boolean,
+    }={}):AsyncGenerator<IDBCursorWithValue> {
+    return this.generator(this.openCursor, (cursor:IDBCursorWithValue)=>cursor, param);
   }
 
-  /**
-   * open query generator, with keys only
-   * @param query 
-   * @param direction 
-   * 
-   * for await (const key of target.keyGenerator()) {
-   *   // DO with keys
-   * }
-   */
-  public async *keyGenerator(query?:IDBValidKey|IDBKeyRange, direction?:IDBCursorDirection) {
-    const cursor = await this.openKeyCursor(query, direction);
-    while(cursor) {
-      yield cursor.key;
-      cursor.continue();
-    }
+  public async *valueGenerator(param:{
+      query?:IDBValidKey|IDBKeyRange,
+      direction?:IDBCursorDirection,
+      having?:(it:any)=>boolean,
+    }={}):AsyncGenerator<IDBCursorWithValue> {
+    return this.generator(this.openCursor, ({value}:IDBCursorWithValue)=>value, param);
   }
+
+  public async *keyGenerator(param:{
+      query?:IDBValidKey|IDBKeyRange,
+      direction?:IDBCursorDirection,
+      having?:(it:any)=>boolean,
+    }={}):AsyncGenerator<IDBCursor> {
+    return this.generator(this.openKeyCursor, ({key}:IDBCursor)=>key, param);
+  }
+
 }
