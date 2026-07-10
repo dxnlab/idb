@@ -128,7 +128,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
    * }
    */
 
-  protected async *generator(requestCursor:Function, retrieval:Function, {query, direction, having}:{
+  protected async *generator(requestCursor:Function, retrieval:Function, {query, direction, where, having}:{
       query?:IDBValidKey|IDBKeyRange,
       direction?:IDBCursorDirection,
       having?:(it:any)=>boolean,
@@ -140,6 +140,33 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
         yield ret;
       }
     }
+  }
+
+  protected async *groupGenerator({ query, direction, having }:{
+      query?:IDBValidKey|IDBKeyRange,
+      direction?:IDBCursorDirection,
+      having?:(cursor:IDBCursorWithValue)=>boolean,
+    }={}) {
+    const cursor = await this.openCursor(query, direction);
+    let prev;
+    let items=[];
+
+    while(cursor) {
+      // skip on having validator false
+      if(having && !having(cursor)) {
+        continue;
+      }
+      if(prev==cursor.key) {
+        items.push(cursor.value);
+      } else {
+        yield [prev, items];
+        // clear after yield
+        prev = cursor.key;
+        items = [cursor.value];
+      }
+    }
+    // finalizing
+    yield [prev, items];
   }
 
   public async *openGenerator(param:{

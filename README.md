@@ -257,10 +257,10 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
          *   then filter those at price range with "HAVING" validator.
          */
         const stmt = prepare(store)
-            .range('category == ?')
+            .range('=', category)
             .having(({price})=> minPrice <= price && price <= maxPrice);
         // statement 
-        for await (const item of stmt.execute(category)) {
+        for await (const item of stmt.values) {
             yield item;
         }
     }
