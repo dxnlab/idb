@@ -1,8 +1,8 @@
 import { idb, reads, writes, trx } from '.'
 /** migration option */
-import migration from './example.migration'
+import migration from './migration'
 /** type definition to ease (optional) */
-import type { Brand, Product, Item } from './example.types'
+import type { Brand, Product, Item } from './types'
 
 
 /** Decorate the class */
