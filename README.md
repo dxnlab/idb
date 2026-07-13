@@ -239,7 +239,7 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
     }
   }
   ```
-  6. Wrapping advanced query feature (<=0.0.3)
+  6. Wrapping advanced query generator (since 0.0.3)
 
   ```typescript
 
@@ -257,9 +257,20 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
          *   then filter those at price range with "HAVING" validator.
          */
         const stmt = prepare(store)
+            // `range` determine query boundary by the store/index keys.
             .range('=', category)
+            // `having` yields the cursor when its condition mets (return true)
             .having(({price})=> minPrice <= price && price <= maxPrice);
+            // set direction. ascending at default.
+            .ascending()
+            // .unique() when unique traversal required
         // statement 
+        // there are multiple generators can be used:
+        // - cursor [IDBCursorWithValue]
+        // - keys [IDBCursor]
+        // - uniqueKeys [IDBCursor], force uniquness to be true
+        // - values [any] value instance
+        // - keyEntries [key, values[]].
         for await (const item of stmt.values) {
             yield item;
         }
@@ -271,9 +282,9 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
     @reads('store')
     public *boundedItemsWithinPeriod({store}, fromDate:Date, tillDate:Date) {
         const stmt = prepare(store)
-            .range('released_date > ?')
-            .range('released_date <= ?');
-        return stmt.execute(fromDate, tillDate);
+            .range('>', fromDate)
+            .range('<=>', tillDate);
+        return stmt.values;
     }
 
     /**
@@ -311,6 +322,6 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
   - with in transaction wrapper
   - @author yg.song
 
-- (expecting) 2026.Jul.14 `v0.0.3` update
+- 2026.Jul.14 `v0.0.3` update
   - (fixed) `IndexProxy` getter at `StoreProxy` instance property.
-  - Advanced generator wrapper using `prepare`, `range`, `having`
+  - Advanced query generator `prepare`
