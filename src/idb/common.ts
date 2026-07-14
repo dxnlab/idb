@@ -109,7 +109,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
     return await promiseRequest(this.basis.getAllRecords(option));
   }
 
-  protected async *cursorGenerator(requestor:'openCursor'|'openKeyCursor', { query, direction }) {
+  protected async *_cursorGenerator(requestor:'openCursor'|'openKeyCursor', { query, direction }) {
     const request = this.basis[requestor](query, direction);
     let { promise, resolve, reject } = Promise.withResolvers();
     let done = false;
@@ -132,6 +132,14 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
       // fillup next
       ({ promise, resolve, reject } = Promise.withResolvers());
     }
+  }
+
+  public async *cursorGenerator(query, direction) {
+    yield* this._cursorGenerator('openCursor', { query, direction });
+  }
+
+  public async *keyCursorGenerator(query, direction) {
+    yield* this._cursorGenerator('openKeyCursor', { query, direction });
   }
 
   /** 
@@ -178,7 +186,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
       direction?:IDBCursorDirection,
       having?:(it:any)=>boolean,
     }={}) {
-      for await (const cursor of this.cursorGenerator(requestCursor, { query, direction })) {
+      for await (const cursor of this._cursorGenerator(requestCursor, { query, direction })) {
         const ret = retrieval(cursor);
         if(having && !having(ret)) {
           continue;
@@ -196,7 +204,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
     
     let prev;
     let itmes = [];
-    for await (const cursor of this.cursorGenerator('openCursor', { query, direction })) {
+    for await (const cursor of this._cursorGenerator('openCursor', { query, direction })) {
       // skipping loop
       if(having && !having(cursor)) { continue; }
 

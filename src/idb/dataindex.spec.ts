@@ -102,6 +102,26 @@ describe("IndexProxy wrapper tests", async () => {
     });
   });
 
+  it('tests cursor generator', async ()=>{
+    await wraps(async ({items})=>{
+      let cnt = 0; 
+      for await (const cursor of items.cursorGenerator()) {
+        const { key, value } = cursor;
+        console.log({key, value});
+        cnt += 1;
+      }
+      expect(cnt).toBeGreaterThan(0);
+
+      cnt = 0;
+      for await (const cursor of items.keyCursorGenerator()) {
+        const { key } = cursor;
+        console.log({key});
+        cnt += 1;
+      }
+      expect(cnt).toBeGreaterThan(0);
+    });
+  });
+
   it('tests generator', async ()=>{
     await wraps(async ({items})=>{
       const idx = items.title;
