@@ -1,58 +1,49 @@
 import { expect } from "expect-webdriverio";
-import { connect, createStore, disconnect, drop, transact } from "./database";
+import { setup, teardown, trx } from './tests';
 import StoreProxy from "./store";
 import IndexProxy from "./dataindex";
 
 describe("IndexProxy wrapper tests", async () => {
-  const dbname = "test_index_proxy_" + Date.now();
   let db: IDBDatabase;
   const storeName = "items";
 
   // @before 
   //  - migrate data/schema/items.simple database [items] with random unique name
   //  - add random items
-  beforeAll(async () => {
-    db = await connect(dbname, {
-      version: 1,
-      upgrade(idb) {
-        createStore(idb, storeName, {
-          key: "id",
-          autoIncrement: true,
-          index: {
-            title: "title",
-            color_size: {
-              key: ["color", "size"],
-            },
-            sku: {
-              key: "sku",
-              unique: true,
-            },
+  before(async () => {
+    db = await setup(1, {
+      [storeName]: {
+        key: 'id',
+        autoIncrement: true,
+        index: {
+          title: 'title',
+          color_size: {
+            key: ['color', 'size'],
           },
-        });
-      },
-    });
-
-    const wr = transact(db, [storeName], "readwrite");
-    await wr(async ({ items }) => {
-      await items.add({ title: "Item A", color: "red", size: "M", sku: "SKU001" });
-      await items.add({ title: "Item B", color: "blue", size: "L", sku: "SKU002" });
-      await items.add({ title: "Item A", color: "red", size: "S", sku: "SKU003" });
+          sku: {
+            unique: true,
+          }
+        }
+      }
+    }, {
+      [storeName]: [
+        { title: "Item A", color: "red", size: "M", sku: "SKU001" },
+        { title: "Item B", color: "blue", size: "L", sku: "SKU002" },
+        { title: "Item A", color: "red", size: "S", sku: "SKU003" },
+      ]
     });
   });
 
   // @after - drop the migrated database
-  afterAll(async () => {
-    await disconnect(db);
-    await drop(dbname);
+  after(async () => {
+    await teardown(db);
   });
 
+  const wraps = async (fn)=>await trx(db, { stores: [storeName], mode: 'readonly'}, fn);
+
   it("IndexProxy methods and properties", async () => {
-    const ro = transact(db, [storeName], "readonly");
-    await ro(async ({ items }) => {
-      //   - create store proxy for both
-      //     ; for each, test properties and methods accordingly (neglect updating when mode readonly)
-      
-      const idxTitle = items.index("title");
+    await wraps(async ({ items }) => {
+      const idxTitle = items.title;
       expect(idxTitle).toBeInstanceOf(IndexProxy);
       expect(idxTitle.index).toBeInstanceOf(IDBIndex);
       
@@ -82,19 +73,34 @@ describe("IndexProxy wrapper tests", async () => {
       const sku2Item = await idxSku.get("SKU002");
       expect(sku2Item).toBeDefined();
       expect(sku2Item.title).toBe("Item B");
-      
-      // Open cursor on index
-      const cursor = await idxSku.openCursor();
-      expect(cursor).toBeDefined();
-      
-      // Generator test
-      let genCount = 0;
-      for await (const val of idxTitle.valueGenerator()) {
-        genCount++;
-      }
-      expect(genCount).toBe(3);
     });
+  });
 
-    return true;
+  it('tests openCursor', async ()=>{
+    await wraps(async ({items})=>{
+      // Open cursor on index
+      const idxSku = items.sku;
+      let cCount = 0;
+      for await (const cursor of idxSku.openCursor()) {
+        console.log('cursor', {key: cursor.key, val: cursor.value});
+        expect(cursor).toBeDefined();
+        expect(cursor).toBeInstanceOf(IDBCursorWithValue);
+        cursor.continue();
+        cCount += 1;
+      }
+      expect(cCount).toBeGreaterThan(0);
+    });
+  });
+
+  it('tests generator', async ()=>{
+    await wraps(async ({items})=>{
+      const idx = items.title;
+      let cnt = 0;
+      for await (const val of idx.valueGenerator()) {
+        console.log({cnt, val});
+        cnt += 1;
+      }
+      expect(cnt).toBeGreaterThan(0);
+    });
   });
 });

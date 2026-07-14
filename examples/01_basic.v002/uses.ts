@@ -1,7 +1,7 @@
 import { expect } from 'expect-webdriverio';
 import logger from '@wdio/logger'
-import { ItemData } from './main'
-import migration from './migration'
+import { ItemData } from './main.js'
+import migration from './migration.js'
 
 describe('example runs', async ()=>{
   const log = logger('EXAMPLE');

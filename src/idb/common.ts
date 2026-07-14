@@ -57,6 +57,8 @@ export function range<T extends IDBValidKey>(min:T|null|undefined=undefined, max
   }
 }
 
+
+
 export class Queriable<T extends IDBObjectStore|IDBIndex> {
 
 
@@ -107,14 +109,43 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
     return await promiseRequest(this.basis.getAllRecords(option));
   }
 
-  // IDB<Target>.openCursor
-  public async openCursor(query?:IDBValidKey|IDBKeyRange, direction?:IDBCursorDirection) {
-    return await promiseRequest<IDBCursorWithValue>(this.basis.openCursor(query, direction));
+  async *cursorGenerator(requestor:'openCursor'|'openKeyCursor', { query, direction }) {
+  const request = this.basis[requestor](query, direction);
+  let { promise, resolve, reject } = Promise.withResolvers();
+  let done = false;
+
+  request.onsuccess = ({target})=>{
+    const cursor = target.result;
+    if(cursor) {
+      resolve(cursor);
+    } else {
+      done = true;
+    }
+  }
+  request.onerror = reject;
+
+  while(!done) {
+    const cursor = await promise;
+    if(cursor) {
+      yield cursor;
+    }
+    // fillup next
+    ({ promise, resolve, reject } = Promise.withResolvers());
+  }
+}
+
+  /** 
+   * IDB<Target>.openCursor
+   * !caution: MUST continue or advance the yielded cursor
+   **/
+  public async *openCursor(query?:IDBValidKey|IDBKeyRange, direction?:IDBCursorDirection) {
+    yield* this.cursorGenerator('openCursor', { query, direction });
+    
   }
 
   // IDB<Target>.openKeyCursor
-  public async openKeyCursor(query?:IDBValidKey|IDBKeyRange, direction?:IDBCursorDirection) {
-    return await promiseRequest<IDBCursor>(this.basis.openKeyCursor(query, direction));
+  public async *openKeyCursor(query?:IDBValidKey|IDBKeyRange, direction?:IDBCursorDirection) {
+    yield* this.cursorGenerator('openKeyCursor', { query, direction });
 
   }
 
@@ -128,18 +159,19 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
    * }
    */
 
-  protected async *generator(requestCursor:Function, retrieval:Function, {query, direction, where, having}:{
+  protected async *generator(requestCursor:Function, retrieval:Function, {query, direction, having}:{
       query?:IDBValidKey|IDBKeyRange,
       direction?:IDBCursorDirection,
       having?:(it:any)=>boolean,
     }={}) {
-    const cursor = await requestCursor(query, direction);
-    while(cursor) {
-      const ret = retrieval(cursor);
-      if(!having || having(ret)) {
+      for await (const cursor of requestCursor(query, direction)) {
+        const ret = retrieval(cursor);
+        if(having && !having(ret)) {
+          continue;
+        }
         yield ret;
+        cursor.continue();
       }
-    }
   }
 
   protected async *groupGenerator({ query, direction, having }:{
@@ -147,23 +179,25 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
       direction?:IDBCursorDirection,
       having?:(cursor:IDBCursorWithValue)=>boolean,
     }={}) {
-    const cursor = await this.openCursor(query, direction);
+    
     let prev;
-    let items=[];
+    let itmes = [];
+    for await (const cursor of this.openCursor(query, direction)) {
+      // skipping loop
+      if(having && !having(cursor)) { continue; }
 
-    while(cursor) {
-      // skip on having validator false
-      if(having && !having(cursor)) {
-        continue;
-      }
-      if(prev==cursor.key) {
-        items.push(cursor.value);
+      const { key, value } = cursor;
+
+      if(prev == key) {
+        items.push(value);
       } else {
-        yield [prev, items];
+        yield [prev, [...items]];
         // clear after yield
-        prev = cursor.key;
-        items = [cursor.value];
+        prev = key;
+        items = [value];
       }
+      // keep running
+      cursor.continue();
     }
     // finalizing
     yield [prev, items];
@@ -174,7 +208,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
       direction?:IDBCursorDirection,
       having?:(it:any)=>boolean,
     }={}):AsyncGenerator<IDBCursorWithValue> {
-    return this.generator(this.openCursor, (cursor:IDBCursorWithValue)=>cursor, param);
+      yield* this.generator(this.openCursor.bind(this), (c)=>c, param);
   }
 
   public async *valueGenerator(param:{
@@ -182,7 +216,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
       direction?:IDBCursorDirection,
       having?:(it:any)=>boolean,
     }={}):AsyncGenerator<IDBCursorWithValue> {
-    return this.generator(this.openCursor, ({value}:IDBCursorWithValue)=>value, param);
+    yield* this.generator(this.openCursor.bind(this), ({value})=>value, param);
   }
 
   public async *keyGenerator(param:{
@@ -190,7 +224,6 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
       direction?:IDBCursorDirection,
       having?:(it:any)=>boolean,
     }={}):AsyncGenerator<IDBCursor> {
-    return this.generator(this.openKeyCursor, ({key}:IDBCursor)=>key, param);
+    yield *this.generator(this.openKeyCursor.bind(this), ({key})=>key, param);
   }
-
 }

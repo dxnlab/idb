@@ -12,7 +12,7 @@ describe("StoreProxy wrapper tests", async () => {
   // @before 
   //  - migrate data/schema/items.simple database [items] with random unique name
   //  - add random items
-  beforeAll(async () => {
+  before(async () => {
     db = connect(dbname, {
       version: 1,
       upgrade(idb) {
@@ -38,7 +38,7 @@ describe("StoreProxy wrapper tests", async () => {
   });
 
   // @after - drop the migrated database
-  afterAll(async () => {
+  after(async () => {
     await disconnect(db);
     await drop(dbname);
   });

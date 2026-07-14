@@ -1,4 +1,4 @@
-import { idb, reads, writes, trx } from '.'
+import { idb, reads, writes, trx } from '../../src/index'
 /** migration option */
 import migration from './migration'
 /** type definition to ease (optional) */

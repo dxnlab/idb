@@ -44,11 +44,10 @@ export default function (builder:()=>May<IDBTransaction>):(runner:Function, args
     try {
       result = await runner.apply(binded, [tx, ...args]);
       // invoke on complete
-      if(tx.mode == 'readonly') {
-        resolve(result);
-      } else {
+      if(tx.mode != 'readonly') {
         tx.commit();
       }
+      resolve(result);
     } catch(err) {
       console.error(err);
       error = err;

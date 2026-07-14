@@ -68,7 +68,10 @@ export function transaction(db:May<IDBDatabase>, {stores, mode, option}:{
   mode?:IDBTransactionMode,
   option?:IDBTransactionOptions
 }) : (runner:Function, args?:any[], binded?:any)=>Promise<any> {
-  return wrapTransaction(async ()=>(await db).transaction(stores, mode, option));
+  return wrapTransaction(async ()=>{
+    const cnx = await db;
+    return cnx.transaction(stores, mode, option);
+  });
 }
 
 /** --- IDBDatabase:migrations ---

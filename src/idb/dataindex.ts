@@ -21,7 +21,7 @@ export default class IndexProxy extends Queriable<IDBIndex> {
   public get locale() { return this.basis.locale; }
   public get objectStore() { return this.basis.objectStore }
   public get multiEntry() { return this.multiEntry; }
-  public get unique() { return this.unique; }
+  public get unique() { return this.basis.unique; }
 
   // methods @inherited
   // - IDBIndex.count
