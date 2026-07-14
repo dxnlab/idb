@@ -81,14 +81,24 @@ describe("IndexProxy wrapper tests", async () => {
       // Open cursor on index
       const idxSku = items.sku;
       let cCount = 0;
-      for await (const cursor of idxSku.openCursor()) {
-        console.log('cursor', {key: cursor.key, val: cursor.value});
-        expect(cursor).toBeDefined();
-        expect(cursor).toBeInstanceOf(IDBCursorWithValue);
-        cursor.continue();
-        cCount += 1;
-      }
-      expect(cCount).toBeGreaterThan(0);
+      const result = await new Promise((resolve, reject)=>{
+        idxSku.openCursor(
+          (cursor) => {
+            if(cursor) {
+              console.log(cursor);
+              cCount += 1;
+              // THIS MUST BE CONTINUED
+              cursor.continue();
+            } 
+            // when it reached its end
+            else {
+              resolve(cCount);
+            }
+          },
+          { onError: reject }
+        );
+      });
+      expect(result).toBeGreaterThan(0);
     });
   });
 
