@@ -8,9 +8,10 @@
 ```typescript
 
 import { 
-    idb,    // class decorator to connect idb
-    reads,  // method wrapper for mode 'readonly'
-    writes  // method warpper for mode 'readwrite'
+    idb,     // class decorator to connect idb
+    reads,   // method wrapper for mode 'readonly'
+    writes,  // method warpper for mode 'readwrite'
+    prepare, // prepare queries
 } from '@dxnlab/idb'
 
 /**
@@ -20,12 +21,17 @@ const migration = {
     version: 1,
     stores: {
         items: 'id'
+        index: {
+            category: 'category',
+            price: 'price',
+        }
     }
 }
 
 type Item = {
     id:string,
     title:string,
+    category?:string,
     price?:number
 }
 
@@ -52,9 +58,20 @@ class ItemDB {
     /**
      * Async Items generator
      */
-    @reads
+    @reads('items')
     public async *items({items}, query?, direction='next') {
         yield* items.valueGenerator({query, direction});
+    }
+
+    /**
+     * prepare query generator
+     */
+    @reads('items')
+    public async itemsOfPrice({items}, categories:ItemCategory[], maxPrice:number) {
+        yield* prepare(items.price)
+            .range('<=', maxPrice)
+            .having(({category})=>categories.includes(category))
+            .values;
     }
 }
 
