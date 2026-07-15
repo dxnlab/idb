@@ -1,54 +1,46 @@
 import { expect } from "expect-webdriverio";
-import { connect } from "./database";
+import { connect, disconnect, drop } from "./database";
 import { createStore } from './database.migration';
-import withTx from './database.transaction';
+import { setup, teardown, trx } from './tests';
 import StoreProxy from "./store";
 
+const storeName = "items";
+const storeDefinition = {
+  key: "id",
+  autoIncrement: true,
+  index: {
+    label: "label",
+    sku: {
+      key: ["product", "color", "size"],
+      unique: true,
+    },
+  },
+}
+
 describe("StoreProxy wrapper tests", async () => {
-  const dbname = "test_store_proxy_" + Date.now();
-  let db: Promise<IDBDatabase>;
-  const storeName = "items";
+  let db; 
 
-  // @before 
-  //  - migrate data/schema/items.simple database [items] with random unique name
-  //  - add random items
-  before(async () => {
-    db = connect(dbname, {
-      version: 1,
-      upgrade(idb) {
-        createStore(idb, storeName, {
-          key: "id",
-          autoIncrement: true,
-          index: {
-            label: "label",
-            sku: {
-              key: ["product", "color", "size"],
-              unique: true,
-            },
-          },
-        });
+  before(async ()=>{
+    db = await setup(1, {
+      [storeName]: storeDefinition, 
+      upgrade(idb) { 
+        createStore(idb, storeName, storeDefinition); 
+        console.log(`[${idb.name}] ${storeName} upgrade handled`);;
       },
+    }, {
+      [storeName]: [
+        { id: 1, label: "item1", product: "A", color: "red", size: "M" },
+        { id: 2, label: "item2", product: "B", color: "blue", size: "L" },
+      ]
     });
+    return db;
+  })
 
-    const wr = withTx(async ()=>(await db).transaction([storeName], 'readwrite'));
-    await wr(async (tx) => {
-      await tx.items.add({ label: "item1", product: "A", color: "red", size: "M" });
-      await tx.items.add({ label: "item2", product: "B", color: "blue", size: "L" });
-    });
-  });
-
-  // @after - drop the migrated database
-  after(async () => {
-    await disconnect(db);
-    await drop(dbname);
-  });
-
+  const wraps = async (runner, mode='readonly')=>await trx(db, { stores: [storeName], mode }, runner);
 
   // within a single transaction for readwrite items
-  await it("readwrite transaction capabilities", async () => {
-    db = connect(dbname);
-    const rw = withTx(async ()=>(await db).transaction([storeName], 'readwrite'));
-    await rw(async (tx) => {
+  it("readwrite transaction capabilities", async () => {
+    await wraps(async (tx) => {
       const items = tx.items;
       //   - create store proxy for both
       expect(items).toBeInstanceOf(StoreProxy);
@@ -60,7 +52,7 @@ describe("StoreProxy wrapper tests", async () => {
       expect(items.keyPath).toBe("id");
       expect(items.autoIncrement).toBe(true);
       expect(items.transaction).toBe(tx);
-      expect(items.indexNames.contains("label")).toBe(true);
+      expect(items.indexNames.includes("label")).toBe(true);
       console.log('store props & methods pass');
 
       //   - test add
@@ -72,7 +64,7 @@ describe("StoreProxy wrapper tests", async () => {
 
       //   - test put
       const putReq = items.put({ id: addedId, label: "item3_updated", product: "C", color: "green", size: "S" });
-      expect(putReq).toBeInstanceOf(Promise);
+
       console.log('put an item pass', await putReq);
 
       //   - test get
@@ -98,14 +90,12 @@ describe("StoreProxy wrapper tests", async () => {
 
       //   - test openCursor
       const cursorReq = items.openCursor();
-      expect(cursorReq).toBeInstanceOf(Promise);
       let cursor = await cursorReq;
       expect(cursor).toBeDefined();
       console.log('open cursor pass');
 
       //   - test openKeyCursor
       const keyCursorReq = items.openKeyCursor();
-      expect(keyCursorReq).toBeInstanceOf(Promise);
       let keyCursor = await keyCursorReq;
       expect(keyCursor).toBeDefined();
       console.log('openKeyCursor pass');
@@ -150,24 +140,22 @@ describe("StoreProxy wrapper tests", async () => {
       const fetchedAfterDel = await items.get(addedId);
       expect(fetchedAfterDel).toBeUndefined();
       console.log('delete the item pass');
-    });
+    }, 'readwrite');
   });
 
   // within a single transaction for readonly items
-  await it("readonly transaction capabilities", async () => {
-    db = connect(dbname);
-    const ro = withTx(async ()=>(await db).transaction([storeName], 'readonly'));
-    await ro(async (tx) => {
+  it("readonly transaction capabilities", async () => {
+    await wraps(async (tx) => {
       const items = tx.items;
+      
       //   - test get
       const fetched = await items.get(1);
       expect(fetched).toBeDefined();
       console.log('get an item pass');
-
+      
       //   - test getAll
       const allItems = await items.getAll();
       expect(allItems.length).toBeGreaterThanOrEqual(2);
-      console.log('getAll pass');
 
       //   - test getAllKeys
       const allKeys = await items.getAllKeys();

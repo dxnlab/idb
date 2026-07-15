@@ -85,7 +85,6 @@ describe("IndexProxy wrapper tests", async () => {
         idxSku.openCursor(
           (cursor) => {
             if(cursor) {
-              console.log(cursor);
               cCount += 1;
               // THIS MUST BE CONTINUED
               cursor.continue();
@@ -108,7 +107,6 @@ describe("IndexProxy wrapper tests", async () => {
       for await (const cursor of items.cursorGenerator()) {
         cnt += 1;
         const { key, value } = cursor;
-        console.log({key, value,cnt});
         cursor.advance(10);
       }
       expect(cnt).toBeGreaterThan(0);

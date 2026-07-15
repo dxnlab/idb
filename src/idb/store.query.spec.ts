@@ -42,7 +42,6 @@ describe('prepare query spec v003', async ()=>{
       // run all values out of stmt
       let valueCount = 0;
       for await (const it of stmt.values) {
-        console.log(it);
         valueCount += 1;
       }
       expect(valueCount).toBeGreaterThanOrEqual(colors.length*99);

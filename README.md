@@ -54,7 +54,7 @@ class ItemDB {
      */
     @reads
     public async *items({items}, query?, direction='next') {
-        return items.valueGenerator({query, direction});
+        yield* items.valueGenerator({query, direction});
     }
 }
 
@@ -284,7 +284,7 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
         const stmt = prepare(store)
             .range('>', fromDate)
             .range('<=>', tillDate);
-        return stmt.values;
+        yield* stmt.values;
     }
 
     /**
@@ -292,14 +292,11 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
      */
     @reads('store')
     public *boundedItemsWithPeriodAvailable({store}, fromDate:Date, tillDate:Date) {
-        const stmt = prepare(store)
-            .range('released_date > from')
-            .range('released_date <= till')
-            .having(({stock_count})=>0<stock_count);
-        return stmt.execute({ 
-            from: fromDate,
-            till: tillDate,
-        });
+        const stmt = prepare(store.released_date)
+            .range('>', fromDate)
+            .range('<=',  tillDate)
+            .having(({stock_count})=> 0<stock_count);
+        yield* stmt.values;
     }
   }
 
@@ -308,7 +305,8 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
   ## Options & Examples
 
   - [x] [Migration](migration.md)
-  - [x] [Proxies](proxies.md)
+  - [x] [Proxies](proxies.md) *v0.0.3 updated
+  - [x] [Queries](queries.md) *v0.0.3 started
   - [ ] Examples
 
 

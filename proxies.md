@@ -149,17 +149,33 @@ async getKey(key):Promise<any>
 async getAll(query?, count?):Promise<any[]>
 async getAllKeys(query?, count?):Promise<any[]>
 async getAllRecords(option?):Promise<any[]> // getAll when not supported
-async openCursor(query?, direction?):Promise<IDBCursorWithValue>
-async openKeyCursor(query?, direction?):Promise<IDBCursor>
+
+// cursor handlers
+async openCursor(handler:(cursor:IDBCursorWithValue)=>any, option:{
+    onError?:(Error)=>void,
+    query?:IDBValidKey|IDBKeyRange, 
+    direction?:IDBCursorDirection,
+}={}):void
+async openKeyCursor(handler:(cursor:IDBCursor)=>any, option:{
+    onError?:(Error)=>void,
+    query?:IDBValidKey|IDBKeyRange, 
+    direction?:IDBCursorDirection,
+}={}):void
+
 
 // generators
 /**
  * build cursor out of (query, direction) 
  * then yields cursor/key/value "where" condition meets.
  */
-async *openGeneartor({query?, direction?, where?}):AsyncGenerator<IDBCursorWithValue>
-async *valueGenerator({query?, direction?, where?}):AsyncGenerator<any>
-async *keyGenerator({query?, direction?, where?}):AsyncGenerator<IDBCursor>
+async *openGeneartor(option:{query?, direction?, having?}={}):AsyncGenerator<IDBCursorWithValue>
+async *valueGenerator(option:{query?, direction?, having?}={}):AsyncGenerator<any>
+async *keyGenerator(option:{query?, direction?, having?}={}):AsyncGenerator<IDBValidKey>
+async *groupGenerator(option:{query?, direction?, having?}={}):AsyncGenerator<[IDBValidKey, any[]]>
+
+// short-hand generators
+
+
 
 ```
 

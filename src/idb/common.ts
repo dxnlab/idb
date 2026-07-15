@@ -146,7 +146,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
    * IDB<Target>.openCursor
    * !caution: MUST continue or advance the yielded cursor
    **/
-  public async *openCursor(handler:(cursor:IDBCursorWithValue)=>any, {onError, query, direction}:{
+  public async openCursor(handler:(cursor:IDBCursorWithValue)=>any, {onError, query, direction}:{
       onError?:Function,
       query?:IDBValidKey|IDBKeyRange,
       direction?:IDBCursorDirection,
@@ -159,7 +159,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
   }
 
   // IDB<Target>.openKeyCursor
-  public async *openKeyCursor(handler:(cursor:IDBCursor)=>any, {onError, query, direction}:{
+  public async openKeyCursor(handler:(cursor:IDBCursor)=>any, {onError, query, direction}:{
     onError?:Function,
     query?:IDBValidKey|IDBKeyRange,
     direction?:IDBCursorDirection,
@@ -196,7 +196,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
       }
   }
 
-  protected async *groupGenerator({ query, direction, having }:{
+  public async *groupGenerator({ query, direction, having }:{
       query?:IDBValidKey|IDBKeyRange,
       direction?:IDBCursorDirection,
       having?:(cursor:IDBCursorWithValue)=>boolean,

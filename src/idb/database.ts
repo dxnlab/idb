@@ -27,8 +27,7 @@ function _buildHandlers(option?:DatabaseOption):{[event:string]:Function|null} {
 }
 
 // - [x] IDBFactory.open
-export const connect:(database:string, option?:DatabaseOption)=>Promise<IDBDatabase> 
-= promisedRequest(
+export const connect:(database:string, option?:DatabaseOption)=>Promise<IDBDatabase> = promisedRequest(
     // builder
     (database:string, option?:DatabaseOption)=>factory.open(database, option?.version),
     // handles

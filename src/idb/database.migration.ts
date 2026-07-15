@@ -25,12 +25,13 @@ export default function (option?:DatabaseOption) {
 const mayString = (target:any) => ((typeof target ==='string')  || (target instanceof String));
 const mayStrings = (target:any) => mayString(target)
     || (Array.isArray(target) && target.reduce((g,t)=>g && mayString(t), true));
+const reduceKeyPathes = (...candidates:any[])=>candidates.reduce((keys, pathes)=>{
+  return (keys==undefined && mayStrings(pathes)) ? pathes : keys;
+}, undefined);
 export function createStore(db:IDBDatabase, storeName:string, option?:StoreOption) {
   // wrap store option
   return Object.entries(option?.index ?? {}).reduce((store, [index, iopt])=>{
-    const keyPath = [iopt?.key, iopt, index].reduce((keys, pathes)=>{
-      return (keys==undefined && mayStrings(pathes)) ? pathes : keys;
-    }, undefined);
+    const keyPath = reduceKeyPathes(iopt?.key, iopt, index);
     // test if iopt itself is string or string[]
 
     const indexOptions = {
@@ -40,7 +41,7 @@ export function createStore(db:IDBDatabase, storeName:string, option?:StoreOptio
     store.createIndex(index, keyPath, indexOptions);
     return store;
   }, db.createObjectStore(storeName, {
-    keyPath: option.key ?? option,
+    keyPath: reduceKeyPathes(option.key, option),
     autoIncrement: option?.autoIncrement
   }));
 }

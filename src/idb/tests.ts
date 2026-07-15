@@ -18,7 +18,6 @@ export async function setup(version:number, stores:StoreOption, seeds?:{[store:s
             await st.add(d);
             cnt += 1;
           }
-          console.log(`seeded [${store}] ${cnt} items`);
         }
       }
     );
