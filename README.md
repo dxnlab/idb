@@ -323,7 +323,7 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
 
   - [x] [Migration](migration.md)
   - [x] [Proxies](proxies.md) *v0.0.3 updated
-  - [x] [Queries](queries.md) *v0.0.3 started
+  - [x] [Queries](query.md) *v0.0.3 started
   - [ ] Examples
 
 
