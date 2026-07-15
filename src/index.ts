@@ -7,6 +7,9 @@ import {
   drop,
   transaction,
 } from "./idb/database";
+export {
+  prepare
+} from './idb/store.query';
 
 const databaseKey = 'idb';
 
