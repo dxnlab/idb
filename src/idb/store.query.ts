@@ -85,7 +85,7 @@ class Statement {
    * @yields cursor:IDBCursorWithValue
    */
   public get cursor():AsyncGenerator<IDBCursorWithValue> {
-    return this.target.generator(this.target.openCursor, (cursor:IDBCursorWithValue)=>cursor);
+    return this.target.openGenerator(this.boundary, this.direction);
   }
 
   /**
@@ -99,7 +99,7 @@ class Statement {
    * @yields key:IDBValidKey
    */
   public get keys():AsyncGenerator<IDBCursor> {
-    return this.target.generator(this.target.openKeyCursor, ({key}:IDBCursor)=>key);
+    return this.target.keyGenerator(this.defaultGeneratorParams);
   }
 
   /**
@@ -111,11 +111,8 @@ class Statement {
    */
   public get uniqueKeys():AsyncGenerator<IDBCursor> {
     const direction = this._directNext ? 'nextunique' : 'prevunique';
-    return this.target.generator(
-      this.target.openKeyCursor,
-      ({key}:IDBCursor)=>key,
-      { query: this.boundary, direction, having: this.havingFn },
-    );
+    const params = Object.assign(this.defaultGeneratorParams, { direction });
+    return this.target.keyGenerator(params);
   }
 
   /**
@@ -131,11 +128,8 @@ class Statement {
    */
   public get keyEntries():AsyncGenerator<[IDBValidKey, any[]]> {
     const direction = this._directNext ? 'next' : 'prev';
-    return this.target.groupGenerator({
-      query: this.boundary,
-      direction,
-      having: this.havingFn,
-    });
+    const params = Object.assign(this.defaultGeneratorParams, { direction });
+    return this.target.groupGenerator(params);
   }
 
   /**

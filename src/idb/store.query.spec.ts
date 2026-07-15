@@ -2,30 +2,30 @@ import { expect } from 'expect-webdriverio'
 import { setup, teardown, trx, randompick } from './tests'
 import { prepare } from './store.query'
 
+const storeName = 'items';
+const storeDefinition = {
+  key: 'id',
+  autoIncrement: true,
+  index: {
+    item_color: 'color',
+    item_order: 'order',
+  }
+}
+const colors = ['red','black','white','grey','blue','green','teal','yellow','violet','brown','orange','gold','silver','steel','bronze','lime','mint'];
+
 describe('prepare query spec v003', async ()=>{
   let db;
-  const colors = ['red','black','white','grey','blue','green','teal','yellow','violet','brown','orange','gold','silver','steel','bronze','lime','mint'];
-  const wraps = async (runner) => await trx(db, { stores: ['items'], mode: 'readonly'}, runner);
+  const wraps = async (runner) => await trx(db, { stores: [storeName], mode: 'readonly'}, runner);
   //
   before(async ()=>{
-    db = await setup(1, 
-      {
-        // store 'items'
-        items: {
-          key: 'id',
-          autoIncrement: true,
-          index: {
-            item_color: 'color',
-            item_order: 'order',
-          }
-        }
-      },
+    db = await setup(1, {[storeName]:storeDefinition}, {
       // multiplicate seeds
-      (new Array(colors.length*100)).map(()=>({
+      [storeName]: (new Array(colors.length*100)).fill(null).map(()=>({
         color: randompick(colors),
         order: Math.round(Math.random()*colors.length*10) + 1,
       }))
-    );
+    });
+    return db;
   });
 
   after(async ()=>{

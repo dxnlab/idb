@@ -38,7 +38,7 @@ export async function teardown(db:Promise<IDBDatabase>) {
   await drop(name);
 }
 
-export async function randompick(arr:any[]) {
+export function randompick(arr:any[]) {
   const idx = Math.round(Math.random() * (arr.length+.5)) % arr.length;
   return arr[idx];
 }

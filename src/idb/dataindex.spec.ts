@@ -106,19 +106,26 @@ describe("IndexProxy wrapper tests", async () => {
     await wraps(async ({items})=>{
       let cnt = 0; 
       for await (const cursor of items.cursorGenerator()) {
-        const { key, value } = cursor;
-        console.log({key, value});
         cnt += 1;
+        const { key, value } = cursor;
+        console.log({key, value,cnt});
+        cursor.advance(10);
       }
       expect(cnt).toBeGreaterThan(0);
 
-      cnt = 0;
+    });
+  });
+  
+  it('tests keyCursor generator', async ()=>{
+    await wraps(async ({items})=>{
+      let cnt = 0;
       for await (const cursor of items.keyCursorGenerator()) {
-        const { key } = cursor;
-        console.log({key});
         cnt += 1;
+        const { key } = cursor;
+        console.log({type: 'keyCursor', key, cnt});
       }
       expect(cnt).toBeGreaterThan(0);
+
     });
   });
 

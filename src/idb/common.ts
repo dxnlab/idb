@@ -110,7 +110,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
   }
 
   protected async *_cursorGenerator(requestor:'openCursor'|'openKeyCursor', { query, direction }) {
-    const request = this.basis[requestor](query, direction);
+    const request = this.basis?.[requestor](query, direction);
     let { promise, resolve, reject } = Promise.withResolvers();
     let done = false;
 
@@ -181,7 +181,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
    * }
    */
 
-  protected async *generator(requestCursor:'openCursor'|'openKeyCursor', retrieval:Function, {query, direction, having}:{
+  private async *generator(requestCursor:'openCursor'|'openKeyCursor', retrieval:Function, {query, direction, having}:{
       query?:IDBValidKey|IDBKeyRange,
       direction?:IDBCursorDirection,
       having?:(it:any)=>boolean,
