@@ -1,5 +1,5 @@
 import { expect } from "expect-webdriverio";
-import { connect, disconnect, drop } from "./database";
+import { generatorOf } from './common';
 import { createStore } from './database.migration';
 import { setup, teardown, trx } from './tests';
 import StoreProxy from "./store";
@@ -34,7 +34,10 @@ describe("StoreProxy wrapper tests", async () => {
       ]
     });
     return db;
-  })
+  });
+  after(async ()=> {
+    await teardown(db);
+  });
 
   const wraps = async (runner, mode='readonly')=>await trx(db, { stores: [storeName], mode }, runner);
 
@@ -89,16 +92,16 @@ describe("StoreProxy wrapper tests", async () => {
       console.log('getAllKeys pass');
 
       //   - test openCursor
-      const cursorReq = items.openCursor();
-      let cursor = await cursorReq;
-      expect(cursor).toBeDefined();
-      console.log('open cursor pass');
+      const cursorReq = items.openCursor(async (cursor)=>{
+        expect(cursor).toBeDefined();
+        console.log('open cursor pass');
+      });
 
       //   - test openKeyCursor
-      const keyCursorReq = items.openKeyCursor();
-      let keyCursor = await keyCursorReq;
-      expect(keyCursor).toBeDefined();
-      console.log('openKeyCursor pass');
+      const keyCursorReq = items.openKeyCursor(async (keyCursor)=>{
+        expect(keyCursor).toBeDefined();
+        console.log('openKeyCursor pass');
+      });
 
       //   - test openGenerator
       let genCount = 0;
@@ -163,14 +166,16 @@ describe("StoreProxy wrapper tests", async () => {
       console.log('getAllKeys pass');
 
       //   - test openCursor
-      const cursor = await items.openCursor();
-      expect(cursor).toBeDefined();
-      console.log('openCursor pass');
+      await items.openCursor(async (cursor)=>{
+        expect(cursor).toBeDefined();
+        console.log('openCursor pass');
+      });
 
       //   - test openKeyCursor
-      const keyCursor = await items.openKeyCursor();
-      expect(keyCursor).toBeDefined();
-      console.log('openKeyCursor pass');
+      await items.openKeyCursor(async (keyCursor)=>{
+        expect(keyCursor).toBeDefined();
+        console.log('openKeyCursor pass');
+      });
 
       //   - test openGenerator
       let genCount = 0;
@@ -204,4 +209,69 @@ describe("StoreProxy wrapper tests", async () => {
     });
     return true;
   });
+
+  // test sequentials - adds / puts / deletes
+  it("test sequential", async ()=>{
+    await wraps(async ({items})=>{
+      expect(items.transaction.mode).toBe('readwrite');
+      // adds new value
+      const adds = [
+        { label: 'item3', product: 'A', color: 'silver', size: 'L' },
+        { label: 'item4', product: 'B', color: 'chrome', size: 'S' },
+        { label: 'item5', product: 'A', color: 'gold', size: 'M' },
+        { label: 'item6', product: 'B', color: 'orange', size: 'XL' },
+      ];
+      const properties = ['label','product','color','size'];
+
+      const added = await items.adds(generatorOf<object>(adds));
+      console.log('adds', added);
+      expect(added).toBeInstanceOf(Array);
+      expect(added.length).toBe(adds.length);
+      console.log('adds pass');
+      
+
+      // puts
+      const puts = [
+        // update id=1
+        { id: 1, product: 'B' },
+        // update id=6
+        { id: 6, color: 'black' },
+        // add id=7
+        { id: 7, label: 'newitem', product: 'C', color: 'blue', size: 'M' },
+        // add id=8
+        { id: 8, label: 'newjean', product: 'D', color: 'green', size: 'XS' },
+      ];
+      const hadPut = await items.puts(generatorOf(puts));
+      console.log('hadPut', hadPut);
+      expect(hadPut).toBeInstanceOf(Array);
+      expect(hadPut.length).toBe(puts.length);
+      console.log('puts pass');
+
+      // now try to gets
+      const ids = puts.map(({id})=>id);
+      const gets = await items.gets(generatorOf(ids));
+      console.log('gets', gets);
+      expect(gets).toBeInstanceOf(Array);
+      expect(gets.length).toBe(puts.length);
+      puts.forEach((put, pi)=>{
+        console.log('gets cmp', put, gets[pi]);
+        Object.entries(put).forEach(([key,val])=>{
+          expect(val).toBe(gets[pi][key]);
+        });
+      });
+      console.log('gets pass');
+
+      // deletes
+      const cleared = await items.deletes(generatorOf(ids));
+      expect(cleared).toBeUndefined();
+
+      // try gets again
+      const gets2 = await items.gets(generatorOf(ids));
+      expect(gets2).toBeInstanceOf(Array);
+      expect(gets2.length).toBe(gets.length);
+      gets2.forEach((got)=>expect(got==null).toBe(true));
+      console.log('deletes pass');
+
+    }, 'readwrite');
+  })
 });

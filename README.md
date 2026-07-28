@@ -203,7 +203,43 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
   // trx(stores, 'readwrite', option)
   writes(...storesOrOption:string|{durability}[])
   ```
-4. It provides built-in query generator support using `open(Key)Cursor`.
+
+4. Classical use of add/put/get/delete + sequencial adds/puts/gets/deletes
+
+```typescript
+import { idb, writes, generatorOf } from 'idb'
+@writes('store')
+public async function editables({store}) {
+    // classical add
+    const addId = await store.add(value);
+    await store.add(value, withKey);
+    // put
+    const putId = await store.put(value);
+    await store.put(value, withKey);
+    // get
+    const value = await store.get(theKey);
+    // delete
+    await store.delete(theKeyOrKeyRange);
+
+    // sequencial manipulation
+    // Tip: if you need async generator to be placed, 
+    //  it won't be a good practice to make sequencial manipulations.
+    const values = [ ...values];
+    // make synchronous generator out of values array
+    const valuesGenerator = generatorOf([... /* some values */]);
+    // will return successful add entry PK array as return
+    // or throw DOMException
+    const addeds = await store.adds(valueGenerator);
+    // puts do the same, with 'put'
+    const puts = await store.puts(valueGenerator);
+    // delete requires PK keys and/or ranges
+    // will return undefined
+    const addedIdsGenerator = generatorOf(addeds);
+    await store.deletes(addeds);
+}
+```
+
+5. It provides built-in query generator support using `open(Key)Cursor`.
 
   ```typescript
   // value generator
@@ -225,7 +261,7 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
   }
   ```
 
-5. Wrapping `AsyncGenerator` query (<=0.0.3)
+6. Wrapping `AsyncGenerator` query (<=0.0.3)
 
   ```typescript
   @idb
@@ -256,11 +292,9 @@ Not yet known; Please feel free to provide typescript-decorator-stage3 support i
     }
   }
   ```
-  6. Wrapping advanced query generator (since 0.0.3)
+  7. Wrapping advanced query generator (since 0.0.3)
 
   ```typescript
-
-
   @idb
   class Bar {
     /**

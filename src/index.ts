@@ -1,15 +1,17 @@
 import { DatabaseOption } from "./types";
+
 import {
-  showDatabases,
+  getConnector,
+  getDisconnector,
+  withTransaction,
+} from './wraps';
+import {
   cmp,
-  connect,
-  disconnect,
-  drop,
+  showDatabases,
   transaction,
-} from "./idb/database";
-export {
-  prepare
-} from './idb/store.query';
+  drop,
+} from './idb';
+
 
 const databaseKey = 'idb';
 
@@ -26,77 +28,59 @@ export function idb(database:string, option?:DatabaseOption) {
 
     // mixin static
     const singleDBKey = `_${databaseKey}$`+(Date.now()+Math.random()).toString(36);
-    const connector = ()=>{
-      if(!cls[singleDBKey]) {
-        cls[singleDBKey] = connect(database, option);
-      }
-      return cls[singleDBKey];  
-    };
-    const disconnector = ()=>{
-        if(cls[singleDBKey]) {
-          disconnect(cls[singleDBKey]);
-          delete cls[singleDBKey];
-        }
-    }
-    Object.defineProperties(cls, {
-      // list database info
+    const connector = getConnector(cls, singleDBKey);
+    const disconnector = getDisconnector(cls, singleDBKey);
+    return Object.defineProperties(cls, {
       showDatabases: { value: showDatabases },
-      // cmp
       cmp: { value: cmp },
-      // connect database singletone getter 
-      [databaseKey]: { 
-        // gets Promise<IDBDatabase>
+      connect: { value: async ()=>await connector(database, option) },
+      disconnect: { value: disconnector },
+      transaction: { 
+        value(
+          stores:string[],
+          mode:IDBTransactionMode='readonly',
+          option?:IDBTransactionOptions
+        ) { return transaction(cls[singleDBKey], { stores, mode, option }); }
+      },
+      drop: {
+        async value(){ 
+          await this.disconnect();
+          await drop(database);
+        } 
+      },
+      [databaseKey]: {
         get() { return cls.connect(); },
         set(_) { cls.disconnect(); },
         enumerable: true,
-      },
-      // connect concurrent singletone
-      connect: { value: connector },
-      // disconnect concurrent singletone
-      disconnect: {  value: disconnector },
-      transaction: { value: (
-        stores:string[], 
-        mode:IDBTransactionMode='readonly', 
-        option?:IDBTransactionOptions) => transaction(
-          cls[databaseKey], 
-          {stores, mode, option}) },
-      drop: { value: drop, },
+      }
     });
   }
 }
 
 const trxAvailableKinds = ['method','getter','setter','accessor'];
-type AsyncTransaction = (...args:any[])=>Promise<any>|AsyncGenerator
-export function trx(
-  stores:string[], 
-  mode?:IDBTransactionMode, 
-  option?:IDBTransactionOptions)
-    :(runner:Function, context:DecoratorContext)=>any {
-
-  return function (runner:Function, context:DecoratorContext):AsyncTransaction {
-    assert(trxAvailableKinds.includes(context.kind),
-      `transaction should be one of; ${trxAvailableKinds.join(',')} but ${context.kind}`);
-    
+export function trx(stores:string[], mode?:IDBTransactionMode, option?:IDBTransactionOptions) {
+  return function(runner:Function, context:DecoratorContext) {
     return async function(this:any, ...args:any[]) {
+      assert(trxAvailableKinds.find((k)=>k == context.kind) != null, 
+        `transaction decorator must be in ${trxAvailableKinds.join(', ')}`);
+
       const cls = this.constructor;
-      // transaction wrapper callable
-      const withinTrx = cls.transaction(stores, mode, option);
-      // run the transaction
-      return await withinTrx(runner, args, this);
-    };
+      const txBuilder = ()=>cls.transaction(stores, mode, option);
+      const runnerWrap = withTransaction(this, txBuilder, runner);
+      return await runnerWrap(...args);
+    }
   }
 }
 
-export function reads(...args:Array<string|IDBTransactionOptions>) {
-  const stores = args.filter((v)=>typeof v === 'string');
-  const option = args.find((v)=>typeof v !== 'string') || undefined;
-
-  return trx(stores, 'readonly', option);
+function wrapTrxWithMode(mode:IDBTransactionMode, trx:Function) {
+  return (...args:Array<string|IDBTransactionOptions>) => {
+    const stores = args.filter((v)=>typeof v === 'string');
+    const option = args.find((v)=>typeof v !== 'string') || undefined;
+    return trx(stores, mode, option);
+  }
 }
 
-export function writes(...args:Array<string|IDBTransactionOptions>) {
-  const stores = args.filter((v)=>typeof v === 'string');
-  const option = args.find((v)=>typeof v !== 'string') || undefined;
+export const reads = wrapTrxWithMode('readonly', trx);
+export const writes = wrapTrxWithMode('readwrite', trx);
 
-  return trx(stores, 'readwrite', option);
-}
+export * from './idb';
