@@ -6,12 +6,6 @@ export {
   prepare
 } from './store.query';
 
-export {
-  factory,
-  showDatabases,
-  cmp,
-  connect,
-  disconnect,
-  drop,
-  transaction,
-} from './database';
+import DatabaseProxy from './database';
+
+export const iDB = DatabaseProxy;

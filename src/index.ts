@@ -1,15 +1,10 @@
 import { DatabaseOption } from "./types";
 
 import {
-  getConnector,
-  getDisconnector,
   withTransaction,
 } from './wraps';
 import {
-  cmp,
-  showDatabases,
-  transaction,
-  drop,
+  iDB
 } from './idb';
 
 
@@ -26,33 +21,32 @@ export function idb(database:string, option?:DatabaseOption) {
     //
     assert(context?.kind === 'class', `class decorator`);
 
-    // mixin static
-    const singleDBKey = `_${databaseKey}$`+(Date.now()+Math.random()).toString(36);
-    const connector = getConnector(cls, singleDBKey);
-    const disconnector = getDisconnector(cls, singleDBKey);
-    return Object.defineProperties(cls, {
-      showDatabases: { value: showDatabases },
-      cmp: { value: cmp },
-      connect: { value: async ()=>await connector(database, option) },
-      disconnect: { value: disconnector },
-      transaction: { 
-        value(
-          stores:string[],
-          mode:IDBTransactionMode='readonly',
-          option?:IDBTransactionOptions
-        ) { return transaction(cls[singleDBKey], { stores, mode, option }); }
-      },
-      drop: {
-        async value(){ 
-          await this.disconnect();
-          await drop(database);
-        } 
-      },
-      [databaseKey]: {
-        get() { return cls.connect(); },
-        set(_) { cls.disconnect(); },
-        enumerable: true,
+    let cnx:any;
+    const connector = ()=>{
+      if(!cnx) {
+        cnx = iDB.open(database, option, true);
       }
+      return cnx;
+    }
+    const disconnector = async ()=>{
+      if(cnx) {
+        await cnx.disconnect();
+        cnx = null;
+        return true;
+      }
+      return false;
+    }
+
+    return Object.defineProperties(cls, {
+      // static factory methods
+      [databaseKey]:{ get: connector },
+      disconnect: { value: disconnector },
+      drop: { 
+        async value() {
+          this.disconnect();
+          return await iDB.drop(database);
+        }
+      },
     });
   }
 }
@@ -65,7 +59,7 @@ export function trx(stores:string[], mode?:IDBTransactionMode, option?:IDBTransa
         `transaction decorator must be in ${trxAvailableKinds.join(', ')}`);
 
       const cls = this.constructor;
-      const txBuilder = ()=>cls.transaction(stores, mode, option);
+      const txBuilder = ()=>cls[databaseKey].transaction(stores, mode, option);
       const runnerWrap = withTransaction(this, txBuilder, runner);
       return await runnerWrap(...args);
     }

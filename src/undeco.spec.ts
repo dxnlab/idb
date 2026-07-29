@@ -1,7 +1,6 @@
 import { expect } from '@wdio/globals';
 import {
   open,
-
   showDatabases,
   cmp,
   prepare,

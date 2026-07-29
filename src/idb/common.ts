@@ -45,7 +45,7 @@ export function appendRequestHandlers(request:any, handlers?:RequestHandlers) {
  */
 export function promiseRequest<R>(request:any):Promise<R> {
   const basis = new Promise<R>((resolve, reject) => {
-    request.onsuccess = (ev:any)=>resolve((ev.target?.result ?? request.result) as R);
+    request.onsuccess = (ev:any)=>resolve((ev.target?.result ?? request.result ?? null) as R);
     request.onerror = (ev:any)=>{
       console.error('!request error', request, request instanceof IDBRequest);
       reject(ev.error ?? request.error);

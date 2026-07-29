@@ -1,13 +1,7 @@
 /**
  * To polyfill when typescript decorator stage3 not provided
  */
-import {
-  factory,
-  showDatabases,
-  cmp,
-  connect,
-  drop,
-} from './idb';
+import iDB from './idb';
 import wrapTransaction from './idb/database.transaction';
 
 import { DatabaseOption } from './types';
@@ -28,14 +22,9 @@ export {
 const connectionPool = {};
 // update IDBDatabase types to run transaction
 Object.defineProperties(connectionPool, {
-  factory: { get: ()=>factory },
-  cmp: { value: cmp },
-  showDatabases: { value: showDatabases },
-  connect: { 
-    value: async (database:string, option?:DatabaseOption) => {
-      
-    }
-  },
+  factory: { get: ()=>iDB.factory },
+  cmp: { value: iDB.cmp },
+  showDatabases: { value: iDB.showDatabases },
 });
 
 function wrapIDBTransaction(db:IDBDatabase, mode?:IDBTransactionMode) {
@@ -70,7 +59,7 @@ function wrapIDBProperties(db:IDBDatabase) {
 
 export async function open(database:string, options?:DatabaseOption) {
   if(!Object.hasOwn(connectionPool, database)) {
-    const db = await connect(database, options);
+    const db = iDB.open(database, options);
     // wrap properties
     wrapIDBProperties(db);
     // append the pool
@@ -83,9 +72,7 @@ export async function close(database:string) {
   return await connectionPool?.[database]?.disconnect();
 }
 
-export {
-  factory,
-  showDatabases,
-  cmp,
-  drop,
-} from './idb';
+export const factory = iDB.factory;
+export const showDatabases = iDB.showDatabases;
+export const cmp = iDB.cmp;
+export const drop = iDB.drop;

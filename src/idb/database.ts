@@ -1,90 +1,151 @@
-import { promisedRequest } from "./common";
-import { DatabaseOption, May } from "../types";
+import { promisedRequest, promiseRequest } from "./common";
+import { DatabaseOption } from "../types";
 import wrapTransaction from './database.transaction';
 import idbMigration from './database.migration';
 
-export const factory = globalThis.indexedDB;
 /** --- IDBFactory ---
  *
  */
+export default class DatabaseProxy {
+  // list of database names - factory level
+  protected static _databases:{[dbname:string]:DatabaseProxy} = {};
+  protected static _databaseInfo?:IDBDatabaseInfo[];
+  protected _connection?:Promise<IDBDatabase>;
+  protected _stores?:string[];
 
-
-// - [x] IDBFactory.databases()
-export async function showDatabases():Promise<IDBDatabaseInfo[]> {
-  return await factory.databases();
-}
-
-// - [ ] IDBFactory.cmp()
-export function cmp(first:any, second:any):number {
-  return factory.cmp(first, second);
-}
-
-function _buildHandlers(option?:DatabaseOption):{[event:string]:Function|null} {
-  return option? {
-    onUpgradeNeeded: idbMigration(option),
-    onBlocked: option?.blocked ? (ev)=>option.blocked(ev.target.result) : null,
-  } : {};
-}
-
-// - [x] IDBFactory.open
-export const connect:(database:string, option?:DatabaseOption)=>Promise<IDBDatabase> = promisedRequest(
-    // builder
-    (database:string, option?:DatabaseOption)=>factory.open(database, option?.version),
-    // handles
-    (_:string, option?:DatabaseOption)=>_buildHandlers(option)
-  );
-
-// - [x] IDBFactory.deleteDatabase
-export const drop:(database:string)=>Promise<any> = promisedRequest(
-  (database:string)=>factory.deleteDatabase(database)
-);
-
-// - [x] IDBDatabase.close
-export async function disconnect(db:IDBDatabase) {
-  return new Promise((resolve, reject) => {
-    let _closed = false;
-    const closure = ()=>{
-      if(!_closed) {
-        _closed = true;
-        resolve(true);
-      }
-    };
-    try {
-      db.addEventListener('close', closure);
-      db.close();
-      // timeout to close
-      setTimeout(closure, 1e2);
-    } catch(ex) {
-      console.error(ex);
-      reject(ex);
+  /**
+   * retrieve IDBFactory instance of global
+   * @use DatabaseProxy.factory
+   */
+  static get factory() { 
+    return globalThis.indexedDB 
+  }
+  /**
+   * IDBFactory.cmp method
+   * @use DatabaseProxy.cmp(value1, value2);
+   * @refer https://developer.mozilla.org/en-US/docs/Web/API/IDBFactory/cmp
+   */
+  static cmp(first:any, second:any):number { 
+    return this.factory.cmp(first, second);
+  }
+  /**
+   * IDBFactory.databases method alias
+   * @use const dbNames = Array.from(await DatabaseProxy.showDatabases()).map(({name,version})=>name);
+   * @refer https://developer.mozilla.org/en-US/docs/Web/API/IDBFactory/databases
+   */
+  static async showDatabases(refresh:boolean=false):Promise<IDBDatabaseInfo[]> {
+    if(!this._databaseInfo || refresh) {
+      const dbInfo = await this.factory.databases();
+      this._databaseInfo = Array.from(dbInfo);
     }
-  });
+    return this._databaseInfo;
+  }
+
+  /**
+   * Boolean flag whether the named database has opened instance
+   * @param database 
+   * @returns true = has Open | false = none
+   */
+  static hasOpen(database:string) {
+    return Object.hasOwn(this._databases, database) != undefined;
+  }
+
+  /**
+   * IDBFactory.deleteDatabase alias
+   * @refer https://developer.mozilla.org/en-US/docs/Web/API/IDBFactory/deleteDatabase
+   */
+  static drop(database:string) {
+    // caution: deleteDatabase rarely resolved in wdio
+    promiseRequest(()=>this.factory.deleteDatabase(database))
+      .then(()=>{
+        delete this._databases[database];
+        this._databaseInfo = undefined;
+      })
+      .finally(()=>{
+        console.log('dropped', database, this._databaseInfo);
+      });
+    return true;
+  }
+
+  /**
+   * 
+   * @param database 
+   * @param option 
+   * @param connect 
+   * @returns 
+   */
+  static open(database:string, option?:DatabaseOption, connect:boolean=false) {
+    if(!Object.hasOwn(this._databases, database)) {
+      const db = new DatabaseProxy(database, option, connect);
+      this._databases[database] = db;
+    }
+    return this._databases[database];
+  }
+  
+  private constructor(
+    protected readonly database:string, 
+    protected readonly option?:DatabaseOption,
+    connect:boolean=false
+  ) { 
+    if(connect) {
+      // run async connection at construction
+      this.connect();
+    }
+  }
+
+  public get hasTryConnected() {
+    return this._connection != undefined;
+  }
+
+  public async connect():Promise<IDBDatabase> {
+    if(!this.hasTryConnected) {
+      const connector = promisedRequest<IDBDatabase>(
+        (name:string, option?:DatabaseOption)=>DatabaseProxy.factory.open(name, option?.version),
+        (_:string, option?:DatabaseOption)=>(option
+          ? {
+            onUpgradeNeeded: idbMigration(option),
+            // @ts-ignore
+            onBlocked: option?.blocked ? ({target})=>option.blocked(target.result) : null,
+          } 
+          : {}) as {[event:string]:Function|null}
+      );
+      this._connection = connector(this.database, this.option);
+      // reset connection on error
+      this._connection.catch(()=>{ this._connection = undefined });
+    }
+    return await this._connection!;
+  }
+
+  public async connected():Promise<boolean> {
+    if(this.hasTryConnected) {
+      const cnx = await this._connection;
+      return cnx != undefined;
+    } else {
+      return false;
+    }
+  }
+
+  public get connection():Promise<IDBDatabase> {
+    return this.connect();
+  }
+
+  public get close(){ return this.disconnect }
+  public async disconnect():Promise<boolean> {
+    if(this.hasTryConnected) {
+      const idb = await this.connection;
+      idb.close();
+      this._connection = undefined;
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public transaction(stores:string[], mode:IDBTransactionMode='readonly', option?:IDBTransactionOptions)
+    :(runner:Function, args?:any[], binded?:any)=>Promise<any> {
+    return wrapTransaction(
+      async() => (await this.connection).transaction(stores, mode, option),
+    );
+  }
 }
 
-// - [x] IDBDatabase.transaction (wrapper)
-export function transaction(db:May<IDBDatabase>, {stores, mode, option}:{
-  stores:string[], 
-  mode?:IDBTransactionMode,
-  option?:IDBTransactionOptions
-}) : (runner:Function, args?:any[], binded?:any)=>Promise<any> {
-  return wrapTransaction(async ()=>{
-    const cnx = await db;
-    return cnx.transaction(stores, mode, option);
-  });
-}
-
-/** --- IDBDatabase:migrations ---
- * 
- */
-
-
-
-export default  {
-  factory,
-  showDatabases,
-  cmp,
-  connect,
-  drop,
-  disconnect,
-  transaction,
-};

@@ -8,7 +8,7 @@ describe('example runs', async ()=>{
   const dbname = 'items';
   let idb:any;
 
-  beforeAll(async ()=>{
+  before(async ()=>{
     // test connector connected
     idb = new ItemData();
     const db = await ItemData.idb;
@@ -61,7 +61,7 @@ describe('example runs', async ()=>{
     expect(count).toBeGreaterThan(0);
   });
 
-  afterAll(async ()=>{
+  after(async ()=>{
     // clear values
     await idb.clearsAll();
     // drop the schema
