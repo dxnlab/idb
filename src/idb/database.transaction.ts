@@ -8,20 +8,24 @@
 import StoreProxy from "./store";
 import type { May } from '../types';
 
-async function wrapProxy(builder:()=>May<IDBTransaction>) {
-  const tx = await builder();
-  const storeNames = Array.from(tx.objectStoreNames);
-  const storeSingulars:{[store:string]:StoreProxy} = {};
-
-  storeNames.map((name:string)=>{
-    Object.defineProperty(tx, name, { get() {
-      if(!storeSingulars?.[name]) {
-        storeSingulars[name] = new StoreProxy(tx, name);
-      }
-      return storeSingulars[name];
-    }})
-  });
-  return tx;
+async function wrapProxy(builder:Function) {
+  try {
+    const tx = await builder.apply(undefined, []);
+    const storeNames = Array.from(tx.objectStoreNames);
+    const storeSingulars:{[store:string]:StoreProxy}= {};
+    
+    storeNames.map((name:any)=>{
+      Object.defineProperty(tx, name, { get() {
+        if(!storeSingulars?.[name]) {
+          storeSingulars[name] = new StoreProxy(tx, name);
+        }
+        return storeSingulars[name];
+      }})
+    });
+    return tx;
+  } catch (ex) {
+    console.error(ex);
+  }
 }
 
 
@@ -32,14 +36,15 @@ export default function (builder:()=>May<IDBTransaction>):(runner:Function, args
     let result:any;
     let error:any;
     tx.onabort = reject;
-    tx.onerror = (ev)=>{
+    tx.onerror = (ev:Event)=>{
+      console.error('tx err', ev);
       error = error || ev;
       tx.abort();
     };
-    tx.oncomplete = ()=>{
+    tx.oncomplete = (ev:Event)=>{
+      console.debug('tx complete', ev)
       resolve(result);
     }
-    
 
     try {
       result = await runner.apply(binded, [tx, ...args]);

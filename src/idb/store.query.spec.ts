@@ -129,8 +129,4 @@ describe('prepare query spec v003', async ()=>{
       expect(cnt).toBeGreaterThan(0);
     });
   });
-
-  it('should group items', async ()=>{
-
-  });
 })

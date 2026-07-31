@@ -34,7 +34,6 @@ describe('undecorated features', async ()=>{
       expect(idb === await open(testDB)).toBe(true);
 
       [
-        'disconnect',
         'drop',
         'trx',
         'reads',
@@ -51,6 +50,7 @@ describe('undecorated features', async ()=>{
         expect(ids).toBeInstanceOf(Array);
         expect(ids.length).toBe(testAdds.length);
         ids.forEach((id)=>expect(id).toBeGreaterThan(0));
+        console.log('write pass', ids);
       });
       
       // reads the values
@@ -61,6 +61,7 @@ describe('undecorated features', async ()=>{
           expect(it).toBeInstanceOf(Object);
           expect(it.id).toBeGreaterThan(0);
         }
+        console.log('reads pass');
       });
     })
   })

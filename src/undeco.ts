@@ -1,11 +1,16 @@
 /**
  * To polyfill when typescript decorator stage3 not provided
  */
-import iDB from './idb';
+import {
+  factory,
+  cmp,
+  showDatabases,
+  connect,
+  drop,
+} from './idb';
 import wrapTransaction from './idb/database.transaction';
 
-import { DatabaseOption } from './types';
-import { getDisconnector } from './wraps';
+import { DatabaseOption, IDBDatabaseProxy, IDBTransactionWrap } from './types';
 
 /**
  * Direct exports
@@ -15,17 +20,22 @@ export {
   generatorOf,
 } from './idb';
 
+type IDBConnectionPoolSingleInstance = {
+  factory:IDBFactory,
+  cmp:(first:any, second:any)=>number,
+  showDatabases:()=>Promise<IDBDatabaseInfo[]>,
+  pool:Map<string,IDBDatabaseProxy>
+}
 
 /**
  * connection pool of databases
  */
-const connectionPool = {};
-// update IDBDatabase types to run transaction
-Object.defineProperties(connectionPool, {
-  factory: { get: ()=>iDB.factory },
-  cmp: { value: iDB.cmp },
-  showDatabases: { value: iDB.showDatabases },
-});
+const connectionPool = Object.defineProperties({}, {
+  factory: { value: factory },
+  cmp: { value: cmp },
+  showDatabases: { value:showDatabases },
+  pool:{ value: new Map<string,IDBDatabaseProxy>() },
+}) as IDBConnectionPoolSingleInstance;
 
 function wrapIDBTransaction(db:IDBDatabase, mode?:IDBTransactionMode) {
   const wraps = async (stores:string[], mode:IDBTransactionMode, runner:Function, option:IDBTransactionOptions) => {
@@ -38,41 +48,39 @@ function wrapIDBTransaction(db:IDBDatabase, mode?:IDBTransactionMode) {
 }
 
 function wrapIDBProperties(db:IDBDatabase) {
-  const disconnect = getDisconnector(connectionPool, db.name);
-  Object.defineProperties(db, {
-    // disconnect
-    disconnect: { value: disconnect },
-    // drop
-    drop: { 
-      value: async ()=>{ 
-        await disconnect();
-        await drop(db.name);
-      }
-    },
+  return Object.defineProperties(db, {
+    drop: { async value() { return await drop(db.name); } },
     // transaction wrappers
     trx: { value: wrapIDBTransaction(db) },
     reads: { value: wrapIDBTransaction(db, 'readonly') },
     writes: { value: wrapIDBTransaction(db, 'readwrite') },
   });
-  return db;
 }
 
 export async function open(database:string, options?:DatabaseOption) {
-  if(!Object.hasOwn(connectionPool, database)) {
-    const db = iDB.open(database, options);
-    // wrap properties
-    wrapIDBProperties(db);
+  if(!connectionPool.pool.has(database)) {
+    const cnx = await connect(database, options);
+    // wrap additional undeco properties
+    wrapIDBProperties(cnx);
     // append the pool
-    connectionPool[database] = db;
+    connectionPool.pool.set(database, cnx);
   }
-  return connectionPool[database];
+  return connectionPool.pool.get(database);
 }
 
 export async function close(database:string) {
-  return await connectionPool?.[database]?.disconnect();
+  if(connectionPool.pool.has(database)) {
+    const cnx = connectionPool.pool.get(database);
+    // disconnect
+    cnx?.disconnect();
+    // remove from the pool
+    connectionPool.pool.delete(database);
+  }
 }
 
-export const factory = iDB.factory;
-export const showDatabases = iDB.showDatabases;
-export const cmp = iDB.cmp;
-export const drop = iDB.drop;
+export {
+  factory,
+  showDatabases,
+  cmp,
+  drop
+} from './idb';

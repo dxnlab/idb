@@ -43,10 +43,18 @@ export function appendRequestHandlers(request:any, handlers?:RequestHandlers) {
  * @param request IDBRequest or alike. target request.
  * @returns Promise (async function)
  */
-export function promiseRequest<R>(request:any):Promise<R> {
+export function promiseRequest<R>(request:any, timeout=10e3):Promise<R> {
+  let timer;
   const basis = new Promise<R>((resolve, reject) => {
-    request.onsuccess = (ev:any)=>resolve((ev.target?.result ?? request.result ?? null) as R);
+    const timer = setTimeout(()=>{
+      reject('request timeout', request);
+    }, timeout);
+    request.onsuccess = (ev:any)=>{
+      clearTimeout(timer);
+      resolve(ev.target?.result ?? request.result ?? null);
+    };
     request.onerror = (ev:any)=>{
+      clearTimeout(timer);
       console.error('!request error', request, request instanceof IDBRequest);
       reject(ev.error ?? request.error);
     };

@@ -21,13 +21,7 @@ describe("StoreProxy wrapper tests", async () => {
   let db; 
 
   before(async ()=>{
-    db = await setup(1, {
-      [storeName]: storeDefinition, 
-      upgrade(idb) { 
-        createStore(idb, storeName, storeDefinition); 
-        console.log(`[${idb.name}] ${storeName} upgrade handled`);;
-      },
-    }, {
+    db = await setup(1, {[storeName]: storeDefinition }, {
       [storeName]: [
         { id: 1, label: "item1", product: "A", color: "red", size: "M" },
         { id: 2, label: "item2", product: "B", color: "blue", size: "L" },

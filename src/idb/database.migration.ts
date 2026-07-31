@@ -1,9 +1,10 @@
 import { DatabaseOption, StoreOption } from "../types";
+import { promiseRequest } from "./common";
 
-export default function (option?:DatabaseOption) {
+export function onUpgrade (option?:DatabaseOption) {
   return option?.upgrade 
     // when explicit upgrade migration presented
-    ? (ev:IDBVersionChangeEvent)=>option.upgrade(ev.target.result) 
+    ? (ev:IDBVersionChangeEvent)=>option.upgrade!(ev.target.result ?? null) 
     // set default migrations
     : (ev:IDBVersionChangeEvent) => {
       const db = ev.target.result ?? undefined;
@@ -20,15 +21,27 @@ export default function (option?:DatabaseOption) {
     };
 }
 
+export function onBlocked (option?:DatabaseOption) {
+  return option?.blocked
+    // when explicit blocked handler presented
+    ? (ev:Event)=>option.blocked!(ev.target.result)
+    : null;
+}
+
 
 // - [x] IDBDatabase.createObjectStore
-const mayString = (target:any) => ((typeof target ==='string')  || (target instanceof String));
-const mayStrings = (target:any) => mayString(target)
-    || (Array.isArray(target) && target.reduce((g,t)=>g && mayString(t), true));
+export function mayString(target:any):boolean {
+  return ((typeof target ==='string')  || (target instanceof String));
+}
+export function mayStrings(target:any):boolean {
+  return mayString(target)
+    || (Array.isArray(target) && target.reduce((g,t)=>g && mayString(t), true))
+};
 const reduceKeyPathes = (...candidates:any[])=>candidates.reduce((keys, pathes)=>{
   return (keys==undefined && mayStrings(pathes)) ? pathes : keys;
 }, undefined);
-export function createStore(db:IDBDatabase, storeName:string, option?:StoreOption) {
+
+function createStore(db:IDBDatabase, storeName:string, option?:StoreOption) {
   // wrap store option
   return Object.entries(option?.index ?? {}).reduce((store, [index, iopt])=>{
     const keyPath = reduceKeyPathes(iopt?.key, iopt, index);
@@ -46,7 +59,6 @@ export function createStore(db:IDBDatabase, storeName:string, option?:StoreOptio
   }));
 }
 
-// - [x] IDBDatabase.deleteObjectStore
-export function deleteStore(db:IDBDatabase, storeName:string) {
-  return db.deleteObjectStore(storeName);
+async function deleteStore(db:IDBDatabase, storeName:string) {
+  return await promiseRequest(db.deleteObjectStore(storeName));
 }

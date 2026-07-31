@@ -4,7 +4,8 @@ import {
   withTransaction,
 } from './wraps';
 import {
-  iDB
+  connect,
+  drop,
 } from './idb';
 
 
@@ -24,7 +25,7 @@ export function idb(database:string, option?:DatabaseOption) {
     let cnx:any;
     const connector = ()=>{
       if(!cnx) {
-        cnx = iDB.open(database, option, true);
+        cnx = connect(database, option);
       }
       return cnx;
     }
@@ -43,8 +44,8 @@ export function idb(database:string, option?:DatabaseOption) {
       disconnect: { value: disconnector },
       drop: { 
         async value() {
-          this.disconnect();
-          return await iDB.drop(database);
+          await disconnector();
+          return await drop(database);
         }
       },
     });
@@ -74,7 +75,23 @@ function wrapTrxWithMode(mode:IDBTransactionMode, trx:Function) {
   }
 }
 
-export const reads = wrapTrxWithMode('readonly', trx);
-export const writes = wrapTrxWithMode('readwrite', trx);
+function handlerOf(event:string) {
+  return function(handler:Function, _:DecoratorContext) {
+    return async function(this:any) {
+      const cls = this.constructor;
+      const cnx = await cls[databaseKey];
+      // add event handler
+      cnx[event](handler);
+    }
+  }
+}
+
+export default {
+  reads: wrapTrxWithMode('readonly', trx),
+  writes: wrapTrxWithMode('readwrite', trx),
+  onError: handlerOf('onError'),
+  onClose: handlerOf('onClose'),
+  onAbort: handlerOf('onAbort'),
+};
 
 export * from './idb';

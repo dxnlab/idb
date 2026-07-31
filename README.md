@@ -6,12 +6,16 @@
 ## Quick Start
 
 ```typescript
+/** on decorator works */
 
 import { 
     idb,     // class decorator to connect idb
-    reads,   // method wrapper for mode 'readonly'
-    writes,  // method warpper for mode 'readwrite'
+    reads,   // method decorator for mode 'readonly'
+    writes,  // method decorator for mode 'readwrite'
     prepare, // prepare queries
+    onClose, // method decorator for IDBConnection onClose event handler
+    onError, // method decorator for IDBConnection~IDBTransaction Error event handler
+    onAbort, // method decorator for IDBConnection~IDBTransaction Abort event handler
 } from '@dxnlab/idb'
 
 /**
@@ -72,6 +76,22 @@ class ItemDB {
             .range('<=', maxPrice)
             .having(({category})=>categories.includes(category))
             .values;
+    }
+
+    @onClose
+    async onConnectionClose() {
+        const connection = await this.idb;
+        // ...
+    }
+
+    @onError
+    onTransactionError(ev:Event) { 
+        console.error('transaction error has occurred:', ev); 
+    }
+
+    @onAbort
+    onTransactionAborted(ev:Event) { 
+        console.warn('transaction has aborted:', ev); 
     }
 }
 
@@ -353,6 +373,114 @@ public async function editables({store}) {
 
   ```
 
+  8. (v0.0.7) undeco (when not using decorator) support
+
+  ```typescript
+  import { 
+    // open & close the database within singletone connection pool
+    open,
+    close,
+    
+    // prepare statement as above(7.)
+    prepare,
+    // creates synchronous generator as above(4.)
+    generatorOf,
+
+    // IDBFactory instance & its deliverables for ease.
+    factory,
+    showDatabases,
+    cmp,
+    drop,
+  } from '@dxnlab/idb/undeco'
+  import { type DatabaseOption } from '@dxnlab/idb/types'
+  import migration from './some_migration_option'
+  import seeds from './some_blog_item_seeds'
+
+  // open the connection from connection pool.
+  // it'll automatically retrieve identical instance once after initial connection.
+  const connection = await open('database_name', migration as DatabaseOption);
+
+  // start write transaction; i.e. seeding values
+  await connection.writes(['authors','posts'], async ({authors, posts}) => {
+    // add authors
+    authors.adds(generatorOf(seeds.authors));
+    // add posts
+    posts.adds(generatorOf(seeds.posts));
+  });
+
+  // simple getters
+  const authors:Promise<Array> = connection.reads(['authors'], async({authors})=>{
+    return await authors.getAll();
+  });
+
+  // query & async generator
+  export async function *postsOf(author_id) {
+    await connnection.reads(['posts'], async ({posts}) => {
+        // prepare values out of index "post_author"; on post.author_id
+        const stmt = prepare(posts.post_author)
+            .range('=', author_id);
+        for await(const post of stmt.values()) {
+            yield post;
+        }
+    });
+  }
+
+  ```
+
+  9. add IDBDatabase common event handlers
+
+  ```typescript
+  /** deco */
+  import { idb, reads, writes, onClose, onError, onAbort } from '@dxnlab/idb';
+
+  @idb('deco')
+  class iDB {
+    @writes('items')
+    addItem({items}, item:Item) { items.add(item) }
+
+    @reads('items')
+    async getItem({items}, item_id) { return await items.get(item_id) }
+
+    @onClose
+    onConnectionClose() {
+        // do things with closed connection
+        const connection = this.idb;
+    }
+
+    @onError
+    onTransactionError() {
+        // when a transaction error bubbled to top
+    }
+
+    @onAbort
+    onTransactionAbort() {
+        // when a transaction abort bubbled to top
+    }
+  }
+
+
+  /** undeco */
+  import { open, close } from '@dxnlab/idb/undeco';
+
+  const connection = open('undeco');
+
+  connection.onClose((ev:Event)=>{
+    // do things with closed connection
+  });
+  connection.onError((ev:Event)=>{
+    // when a transaction error bubbled to top
+  });
+  connection.onAbort((ev:Event)=>{
+    // when a transaction abort bubbled to top
+  });
+
+  // add items
+  await connection.writes(['items'], async ({items})=>{ /* ... */ });
+  // get items
+  await connection.reads(['items'], async ({items})=>{ /* ... */ });
+
+  ```
+
   ## Options & Examples
 
   - [x] [Migration](migration.md)
@@ -374,3 +502,15 @@ public async function editables({store}) {
 - 2026.Jul.14 `v0.0.3` update
   - (fixed) `IndexProxy` getter at `StoreProxy` instance property.
   - Advanced query generator `prepare`
+
+- 2026.Jul.31 `v0.0.6` update
+  - undeco added
+  - connection event handlers (onClose, onError, onAbort) added
+
+- (__ future__) 2026.Aug.mid. `v0.0.9` update
+  - examples adds
+  - documents adds
+
+- (__ future__) 2026.Aug.ends. `v1.0.0RC` publish
+  - types refined
+  - unittests refined

@@ -1,5 +1,5 @@
 import { Queriable } from './common'
-import iDB from './database'
+import { cmp } from './database'
 
 
 export function prepare(target:Queriable) {
@@ -212,7 +212,7 @@ class Statement {
    * >]
    */
   protected set upper(values:any) {
-    this.setBound('upper', values, (p,n)=>0<iDB.cmp(n,p));
+    this.setBound('upper', values, (p,n)=>0<cmp(n,p));
   }
 
   /**
@@ -224,7 +224,7 @@ class Statement {
    * >]
    */
   protected set lower(values:any) {
-    this.setBound('lower', values, this._lower, (p,n)=>0<iDB.cmp(p,n));
+    this.setBound('lower', values, this._lower, (p,n)=>0<cmp(p,n));
   }
 
   /**

@@ -1,18 +1,17 @@
-import { type StoreOption } from '../types.d'
-import iDB from './database'
+import { May, type StoreOption } from '../types.d'
+import { connect, drop } from './database'
 import transaction from './database.transaction'
 
 const dbname = 'test_store_proxy_' + Date.now();
 
-export async function setup(version:number, stores:StoreOption, seeds?:{[store:string]:any[]}) {
-  const db = iDB.open(dbname, {
+export async function setup(version:number, stores:{[store:string]:StoreOption}, seeds?:{[store:string]:any[]}) {
+  const db = await connect(dbname, {
     version,
     stores,
   });
-  await db.connect();
   if(seeds) {
-    await trx(db.connection, {  stores: Array.from(Object.keys(seeds)), mode: 'readwrite' }, 
-      async (tx)=>{
+    await trx(db, {  stores: Array.from(Object.keys(seeds)), mode: 'readwrite' }, 
+      async (tx:any)=>{
         for (const [store, data] of Object.entries(seeds)) {
           const st = tx[store];
           let cnt = 0;
@@ -25,7 +24,7 @@ export async function setup(version:number, stores:StoreOption, seeds?:{[store:s
     );
   }
 
-  return await db.connection;
+  return db;
 }
 
 export async function trx(db:May<IDBDatabase>, {stores, mode}, fn:Function) {
@@ -34,9 +33,12 @@ export async function trx(db:May<IDBDatabase>, {stores, mode}, fn:Function) {
   return await tx(fn);
 }
 
-export async function teardown(db:Promise<IDBDatabase>) {
+export async function teardown(db:May<IDBDatabase>) {
+  console.log('start teardown with', db);
   const idb = await db;
-  await iDB.drop(idb.name);
+  const dbname = idb.name;
+  idb.disconnect();
+  await drop(dbname);
 }
 
 export function randompick(arr:any[]) {
