@@ -508,9 +508,9 @@ public async function editables({store}) {
   - connection event handlers (onClose, onError, onAbort) added
 
 - (__ future__) 2026.Aug.mid. `v0.0.9` update
-  - examples adds
-  - documents adds
+  - add examples
+  - add documents
 
 - (__ future__) 2026.Aug.ends. `v1.0.0RC` publish
-  - types refined
-  - unittests refined
+  - refine types
+  - add & update unittests
