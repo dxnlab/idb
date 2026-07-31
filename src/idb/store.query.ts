@@ -51,7 +51,7 @@ class Statement {
    */
   public range(oper:PrepareOperator|string, ...values:any[]):Statement {
     const selectedOp = Statement.operators
-      .reduce((g?:string, {operator, pattern, bounds})=>{
+      .reduce((g:string, {operator, pattern, bounds})=>{
 
       if(g == undefined && pattern.test(oper)) {
         // put values into the query

@@ -98,7 +98,15 @@ class ItemDB {
 /*---- USE ----*/
 
 // simple construction will connect the database
-const itemDB = new ItemDB();
+/**
+ * @deprecate constructor
+ * const itemDB = new ItemDB // <= `v0.0.5`;
+ * // Yet it's available to create an instance,
+ * // But better practice to get it from class singletone.
+ **/
+const itemDB = await ItemDB.get();
+
+
 // The first parameter, tx; gets neglected when explicitly called.
 await itemDB.addItem({ id: 'one', title: 'one', price: 1});
 await itemDB.addItem({ id: 'two', title: '2' });

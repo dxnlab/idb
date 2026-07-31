@@ -1,9 +1,6 @@
 import { DatabaseOption } from "./types";
 
 import {
-  withTransaction,
-} from './wraps';
-import {
   connect,
   drop,
 } from './idb';
@@ -23,8 +20,10 @@ export function idb(database:string, option?:DatabaseOption) {
     assert(context?.kind === 'class', `class decorator`);
 
     let cnx:any;
+    let singluar:any;
     const connector = ()=>{
       if(!cnx) {
+        singluar = new cls;
         cnx = connect(database, option);
       }
       return cnx;
@@ -32,7 +31,9 @@ export function idb(database:string, option?:DatabaseOption) {
     const disconnector = async ()=>{
       if(cnx) {
         await cnx.disconnect();
+        // clear
         cnx = null;
+        singluar = undefined;
         return true;
       }
       return false;
@@ -41,6 +42,14 @@ export function idb(database:string, option?:DatabaseOption) {
     return Object.defineProperties(cls, {
       // static factory methods
       [databaseKey]:{ get: connector },
+      get: { 
+        async value(){
+          if(!cnx) {
+            await connector();
+          }
+          return singluar; 
+        }
+      },
       disconnect: { value: disconnector },
       drop: { 
         async value() {
@@ -60,9 +69,8 @@ export function trx(stores:string[], mode?:IDBTransactionMode, option?:IDBTransa
         `transaction decorator must be in ${trxAvailableKinds.join(', ')}`);
 
       const cls = this.constructor;
-      const txBuilder = ()=>cls[databaseKey].transaction(stores, mode, option);
-      const runnerWrap = withTransaction(this, txBuilder, runner);
-      return await runnerWrap(...args);
+      const wrap = (await cls[databaseKey]).txWrapper(stores, mode, option);
+      return await wrap(runner, args, cls);
     }
   }
 }
@@ -86,12 +94,9 @@ function handlerOf(event:string) {
   }
 }
 
-export default {
-  reads: wrapTrxWithMode('readonly', trx),
-  writes: wrapTrxWithMode('readwrite', trx),
-  onError: handlerOf('onError'),
-  onClose: handlerOf('onClose'),
-  onAbort: handlerOf('onAbort'),
-};
-
+export const reads = wrapTrxWithMode('readonly', trx);
+export const writes = wrapTrxWithMode('readwrite', trx);
+export const onClose = handlerOf('onClose');
+export const onAbort = handlerOf('onAbort');
+export const onError = handlerOf('onError');
 export * from './idb';

@@ -37,14 +37,11 @@ export default function (builder:()=>May<IDBTransaction>):(runner:Function, args
     let error:any;
     tx.onabort = reject;
     tx.onerror = (ev:Event)=>{
-      console.error('tx err', ev);
       error = error || ev;
-      tx.abort();
+      console.error('tx err', ev);
+      reject(error);
     };
-    tx.oncomplete = (ev:Event)=>{
-      console.debug('tx complete', ev)
-      resolve(result);
-    }
+    tx.oncomplete = (ev:Event)=>{ resolve(result); }
 
     try {
       result = await runner.apply(binded, [tx, ...args]);

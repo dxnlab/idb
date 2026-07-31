@@ -44,10 +44,9 @@ export function appendRequestHandlers(request:any, handlers?:RequestHandlers) {
  * @returns Promise (async function)
  */
 export function promiseRequest<R>(request:any, timeout=10e3):Promise<R> {
-  let timer;
   const basis = new Promise<R>((resolve, reject) => {
     const timer = setTimeout(()=>{
-      reject('request timeout', request);
+      reject('timeout');
     }, timeout);
     request.onsuccess = (ev:any)=>{
       clearTimeout(timer);
@@ -91,7 +90,7 @@ export function promisedRequest<R>(builder:RequestBuilder, handlerBuilder?:Reque
  * @param maxOpen 
  * @returns IDBKeyRange
  */
-export function range<T extends IDBValidKey>(min:T|null|undefined=undefined, max:T|null|undefined=undefined, minOpen:boolean=false, maxOpen:boolean=false):IDBKeyRange {
+export function range<T extends IDBValidKey>(min:T|null|undefined=undefined, max:T|null|undefined=undefined, minOpen:boolean=false, maxOpen:boolean=false) {
   switch (true) {
     // min & max set
     case min!=undefined && max!=undefined:
@@ -135,7 +134,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
     return await promiseRequest<T>(this.basis[fnname](...args));
   }
 
-  protected async bindGenerator<T>(fnname:string, generator:Generator) {
+  protected async bindGenerator<T>(fnname:string, generator:()=>Generator) {
     const rss = [];
     for await (const v of generator()) {
       const rs = await this.binds<T>(fnname, v);
@@ -180,7 +179,7 @@ export class Queriable<T extends IDBObjectStore|IDBIndex> {
     let { promise, resolve, reject } = Promise.withResolvers();
     let done = false;
 
-    request.onsuccess = ({target})=>{
+    request.onsuccess = ({target}:any)=>{
       const cursor = target.result;
       if(cursor) {
         resolve(cursor);

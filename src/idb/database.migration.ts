@@ -41,7 +41,7 @@ const reduceKeyPathes = (...candidates:any[])=>candidates.reduce((keys, pathes)=
   return (keys==undefined && mayStrings(pathes)) ? pathes : keys;
 }, undefined);
 
-function createStore(db:IDBDatabase, storeName:string, option?:StoreOption) {
+export function createStore(db:IDBDatabase, storeName:string, option?:StoreOption) {
   // wrap store option
   return Object.entries(option?.index ?? {}).reduce((store, [index, iopt])=>{
     const keyPath = reduceKeyPathes(iopt?.key, iopt, index);
@@ -59,6 +59,6 @@ function createStore(db:IDBDatabase, storeName:string, option?:StoreOption) {
   }));
 }
 
-async function deleteStore(db:IDBDatabase, storeName:string) {
+export async function deleteStore(db:IDBDatabase, storeName:string) {
   return await promiseRequest(db.deleteObjectStore(storeName));
 }
