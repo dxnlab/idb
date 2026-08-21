@@ -515,10 +515,10 @@ public async function editables({store}) {
   - undeco added
   - connection event handlers (onClose, onError, onAbort) added
 
-- (__ future__) 2026.Aug.mid. `v0.0.9` update
+- (__ future__) 2026.Aug.ends. `v0.0.9` update
   - add examples
   - add documents
 
-- (__ future__) 2026.Aug.ends. `v1.0.0RC` publish
+- (__ future__) 2026.Sep. `v1.0.0RC` publish
   - refine types
   - add & update unittests
