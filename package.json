@@ -18,9 +18,18 @@
   },
   "author": "yg.song <yg.song@dxnlab.com>",
   "type": "module",
-  "main": "dist/index.js",
-  "browser": "./src/index.ts",
-  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "main": "./dist/index.js",
+      "browser": "./dits/index.js",
+      "types": "dist/index.d.ts"
+    },
+    "./undeco": {
+      "main": "./dist/undeco.js",
+      "browser": "./dist/undeco.js",
+      "types": "./dist/undeco.d.ts"
+    }
+  },
   "directories": {
     "doc": "docs",
     "example": "examples"
@@ -29,20 +38,27 @@
     "build": "tsc -p tsconfig.build.json",
     "test:all": "wdio run ./wdio.conf.ts > wdio.test.all.log",
     "test:spec": "wdio run ./wdio.conf.ts --verbose --spec ",
-    "test:watch": "wdio run ./wdio.conf.ts --verbose --watch --spec "
+    "test:watch": "wdio run ./wdio.conf.ts --verbose --watch --spec ",
+    "dev": "vite -c ./vite.preview.ts",
+    "build:preview": "vite -c ./vite.preview.ts build"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-decorators": "^8.0.2",
+    "@mdi/font": "^7.4.47",
+    "@rolldown/plugin-babel": "^0.2.3",
     "@types/node": "^25.9.5",
-    "@wdio/browser-runner": "^9.30.0",
-    "@wdio/cli": "^9.30.0",
-    "@wdio/globals": "^9.29.1",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/tsconfig": "^0.9.1",
+    "@wdio/browser-runner": "^9.31.1",
+    "@wdio/cli": "^9.31.1",
+    "@wdio/globals": "^9.31.1",
     "@wdio/logger": "^9.29.1",
-    "@wdio/mocha-framework": "^9.30.0",
-    "@wdio/spec-reporter": "^9.29.1",
+    "@wdio/mocha-framework": "^9.31.1",
+    "@wdio/spec-reporter": "^9.31.1",
     "aria-query": "^5.3.2",
     "css-shorthand-properties": "1.1.2",
     "css-value": "0.0.1",
-    "deepmerge-ts": "^7.1.5",
+    "deepmerge-ts": "^7.1.6",
     "expect": "^30.4.1",
     "expect-webdriverio": "^5.7.0",
     "grapheme-splitter": "1.0.4",
@@ -54,13 +70,20 @@
     "lodash.pickby": "^4.6.0",
     "lodash.zip": "^4.2.0",
     "minimatch": "^10.2.6",
-    "mocha": "^11.7.6",
+    "mocha": "^11.8.0",
     "p-iteration": "^1.1.8",
     "rgb2hex": "^0.2.5",
     "split2": "^4.2.0",
-    "tsx": "^4.23.1",
+    "tsx": "^4.23.12",
     "typescript": "^6.0.3",
-    "ws": "^8.21.1"
+    "vite": "^8.2.2",
+    "vite-plugin-typescript-transform": "^1.3.1",
+    "vite-plugin-vuetify": "^2.1.3",
+    "vue": "^3.5.41",
+    "vue-router": "^5.2.0",
+    "vue-tsc": "link:/vue-tsc",
+    "vuetify": "^4.1.11",
+    "ws": "^8.21.3"
   },
   "engines": {
     "node": ">=12.20"

@@ -14,10 +14,17 @@ const assert = (condition:any, message:string) => {
   }
 }
 
+/**
+ * 
+ * @core register idb class
+ * @param database 
+ * @param option 
+ * @returns 
+ */
 export function idb(database:string, option?:DatabaseOption) {
-  return (cls:any, context?:DecoratorContext) => {
+  return (cls:any, context:DecoratorContext) => {
     //
-    assert(context?.kind === 'class', `class decorator`);
+    assert(context?.kind === 'class', `expected class decorator but ${context?.kind}`);
 
     let cnx:any;
     let singluar:any;
