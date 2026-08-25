@@ -5,7 +5,7 @@
     <!-- route links -->
     <v-list>
       <template v-for="{ title, path, items } in appRoutes" :key="`app-route-${path}`">
-        <v-list-group :value="title">
+        <v-list-group :value="title" v-if="items && 0<items.length">
           <template #activator="{ props }">
             <route-list-item v-bind="props" :title="title" :path="path" />
           </template>
@@ -13,6 +13,7 @@
             v-for="it in items" :key="`app-route-${path}.${it.path}`"
             :title="it.title" :path="joinPath(path, it.path)" />
         </v-list-group>
+        <route-list-item v-else :title="title" :path="path" />
       </template>
     </v-list>
   </v-navigation-drawer>
@@ -42,7 +43,9 @@ export default {
         .map(({ title, path, children })=>({ 
           title, 
           path,
-          items: revIter(children).map(({path, title})=>({ path, title })) 
+          items: children && 0<children.length 
+            ? revIter(children).map(({path, title})=>({ path, title })) 
+            : null,
         }))
     },
     currentRoute() {

@@ -15,6 +15,9 @@ app.provide('config', shallowReactive({
   showNavigation: true,
   theme: undefined,
 }))
+app.provide('readme', shallowReactive({
+  url: import.meta.env.VITE_PREVIEW_PROJECT_README,
+}))
 app.provide('activePath', computed(()=>{
   return app.config.globalProperties.$router.currentRoute
     ?.value?.fullPath;

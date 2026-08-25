@@ -1,5 +1,5 @@
 <template>
-  <v-list-item :active="active">
+  <v-list-item :active="active!=null">
     <v-list-item-title @click="onClick">{{ title }}</v-list-item-title>
   </v-list-item>
 </template>
