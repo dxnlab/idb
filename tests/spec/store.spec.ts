@@ -1,8 +1,7 @@
-import { expect } from "expect-webdriverio";
-import { generatorOf } from './common';
-import { createStore } from './database.migration';
-import { setup, teardown, trx } from './tests';
-import StoreProxy from "./store";
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { generatorOf } from '../../src/idb/common';
+import { setup, teardown, trx } from '../../src/idb/tests';
+import StoreProxy from "../../src/idb/store";
 
 const storeName = "items";
 const storeDefinition = {
@@ -20,7 +19,7 @@ const storeDefinition = {
 describe("StoreProxy wrapper tests", async () => {
   let db; 
 
-  before(async ()=>{
+  beforeAll(async ()=>{
     db = await setup(1, {[storeName]: storeDefinition }, {
       [storeName]: [
         { id: 1, label: "item1", product: "A", color: "red", size: "M" },
@@ -29,7 +28,7 @@ describe("StoreProxy wrapper tests", async () => {
     });
     return db;
   });
-  after(async ()=> {
+  afterAll(async ()=> {
     await teardown(db);
   });
 

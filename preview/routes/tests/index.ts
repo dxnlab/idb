@@ -3,6 +3,7 @@ import suiteLocal from './LocalEnv.vue'
 import suiteBasic from './Basic.vue'
 import suiteQueries from './Queries.vue'
 
+
 export default {
   component: Layout,
   children: [

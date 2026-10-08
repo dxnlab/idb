@@ -1,12 +1,12 @@
 import routeProject from './project'
-import routeSuites from './suites'
+import routeTests from './tests'
 import routeExamples from './examples'
 import routeReferences from './references'
 
 const routes = [
   { title: 'Reference', path: '/reference', ...routeReferences },
   { title: 'Example', path: '/example', ...routeExamples },
-  { title: 'Tests', path: '/suite', ...routeSuites },
+  { title: 'Tests', path: '/test', ...routeTests },
   { title: '@dxnlab/idb', path: '/', ...routeProject },
 ];
 

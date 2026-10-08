@@ -1,6 +1,6 @@
-import { expect } from 'expect-webdriverio'
-import { cmp, showDatabases, drop, connector, connect } from "./database";
-import { createStore } from "./database.migration";
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { cmp, showDatabases, drop, connector, connect } from "../../src/idb/database";
+import { createStore } from "../../src/idb/database.migration";
 
 /** 
  * database wrapper (database.ts) specification test
@@ -73,7 +73,7 @@ describe('database wrapper tests', async ()=>{
       }
     };
 
-    before(async ()=>{
+    beforeAll(async ()=>{
       // create the database
       let upgradeCalled = 0;
       db = await connect(dbname, {
@@ -94,7 +94,7 @@ describe('database wrapper tests', async ()=>{
       console.log('beforeHook done');
     });
 
-    after(async ()=>{
+    afterAll(async ()=>{
       
       // completes to drop
       db.disconnect();

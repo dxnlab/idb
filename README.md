@@ -343,7 +343,8 @@ public async function editables({store}) {
             // set direction. ascending at default.
             .ascending()
             // .unique() when unique traversal required
-        // statement 
+            // statement
+            
         // there are multiple generators can be used:
         // - cursor [IDBCursorWithValue]
         // - keys [IDBCursor]

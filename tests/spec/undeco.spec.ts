@@ -1,11 +1,11 @@
-import { expect } from '@wdio/globals';
+import { describe, it, expect } from 'vitest';
 import {
   open,
   showDatabases,
   cmp,
   prepare,
   generatorOf,
-} from './undeco';
+} from '../../src/undeco';
 
 const testDB = 'test';
 const testMigration =  {

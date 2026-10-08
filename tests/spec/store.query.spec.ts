@@ -1,6 +1,6 @@
-import { expect } from 'expect-webdriverio'
-import { setup, teardown, trx, randompick } from './tests'
-import { prepare } from './store.query'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { setup, teardown, trx, randompick } from '../../src/idb/tests'
+import { prepare } from '../../src/idb/store.query'
 
 const storeName = 'items';
 const storeDefinition = {
@@ -17,7 +17,7 @@ describe('prepare query spec v003', async ()=>{
   let db;
   const wraps = async (runner) => await trx(db, { stores: [storeName], mode: 'readonly'}, runner);
   //
-  before(async ()=>{
+  beforeAll(async ()=>{
     db = await setup(1, {[storeName]:storeDefinition}, {
       // multiplicate seeds
       [storeName]: (new Array(colors.length*100)).fill(null).map(()=>({
@@ -28,7 +28,7 @@ describe('prepare query spec v003', async ()=>{
     return db;
   });
 
-  after(async ()=>{
+  afterAll(async ()=>{
     await teardown(db);
   });
 
@@ -45,6 +45,8 @@ describe('prepare query spec v003', async ()=>{
         valueCount += 1;
       }
       expect(valueCount).toBeGreaterThanOrEqual(colors.length*99);
+
+      console.log('values.done');
 
       // keys should be 'id'
       stmt
@@ -64,6 +66,8 @@ describe('prepare query spec v003', async ()=>{
         }
         lastId = id;
       }
+
+      console.log('keys.done');
     });
   });
 

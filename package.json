@@ -1,6 +1,7 @@
 {
   "name": "@dxnlab/idb",
   "version": "0.0.6",
+  "type": "module",
   "description": "indexeddb-decorator; Simplify indexeddb(https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) usage with Typescript decorator wrapper (stage3; https://devblogs.microsoft.com/typescript/announcing-typescript-5-0/#decorators)",
   "license": "LGPL-3.0-or-later",
   "keywords": [
@@ -17,12 +18,11 @@
     "url": "git+https://github.com/dxnlab/idb.git"
   },
   "author": "yg.song <yg.song@dxnlab.com>",
-  "type": "module",
   "exports": {
     ".": {
       "main": "./dist/index.js",
-      "browser": "./dits/index.js",
-      "types": "dist/index.d.ts"
+      "browser": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     },
     "./undeco": {
       "main": "./dist/undeco.js",
@@ -39,54 +39,56 @@
     "test:all": "wdio run ./wdio.conf.ts > wdio.test.all.log",
     "test:spec": "wdio run ./wdio.conf.ts --verbose --spec ",
     "test:watch": "wdio run ./wdio.conf.ts --verbose --watch --spec ",
+    "test:browser": "vitest --config=vitest.browser.config.ts",
     "dev": "vite -c ./vite.preview.ts",
     "build:preview": "vite -c ./vite.preview.ts build"
   },
   "devDependencies": {
     "@babel/plugin-proposal-decorators": "^8.0.2",
     "@mdi/font": "^7.4.47",
-    "@rolldown/plugin-babel": "^0.2.3",
-    "@types/node": "^25.9.5",
-    "@vitejs/plugin-vue": "^6.0.8",
+    "@rolldown/plugin-babel": "^0.2.4",
+    "@types/node": "^25.9.9",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "@vitest/browser-playwright": "^5.0.3",
     "@vue/tsconfig": "^0.9.1",
-    "@wdio/browser-runner": "^9.31.1",
-    "@wdio/cli": "^9.31.1",
-    "@wdio/globals": "^9.31.1",
+    "@wdio/browser-runner": "^9.32.0",
+    "@wdio/cli": "^9.32.0",
+    "@wdio/globals": "^9.31.3",
     "@wdio/logger": "^9.29.1",
-    "@wdio/mocha-framework": "^9.31.1",
-    "@wdio/spec-reporter": "^9.31.1",
+    "@wdio/mocha-framework": "^9.32.0",
+    "@wdio/spec-reporter": "^9.32.0",
     "aria-query": "^5.3.2",
     "css-shorthand-properties": "1.1.2",
     "css-value": "0.0.1",
     "deepmerge-ts": "^7.1.6",
-    "expect": "^30.4.1",
-    "expect-webdriverio": "^5.7.0",
+    "expect": "^30.5.2",
     "grapheme-splitter": "1.0.4",
-    "jest-matcher-utils": "^30.4.1",
-    "jest-util": "^30.4.1",
+    "jest-matcher-utils": "^30.5.2",
+    "jest-util": "^30.5.1",
     "lodash.clonedeep": "4.5.0",
     "lodash.flattendeep": "^4.4.0",
     "lodash.merge": "^4.6.2",
     "lodash.pickby": "^4.6.0",
     "lodash.zip": "^4.2.0",
-    "marked": "^18.0.10",
+    "marked": "^18.1.0",
     "minimatch": "^10.2.6",
     "mocha": "^11.8.0",
     "monaco-editor": "^0.56.0",
     "p-iteration": "^1.1.8",
     "rgb2hex": "^0.2.5",
-    "sass-embedded": "^1.103.1",
+    "sass-embedded": "^1.105.1",
     "split2": "^4.2.0",
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "vite": "^8.2.2",
+    "vite": "^8.3.3",
     "vite-plugin-typescript-transform": "^1.3.1",
     "vite-plugin-vuetify": "^2.1.3",
-    "vue": "^3.5.41",
-    "vue-router": "^5.2.0",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vue": "^3.5.43",
+    "vue-router": "^5.3.1",
     "vue-tsc": "link:/vue-tsc",
-    "vuetify": "^4.1.11",
-    "ws": "^8.21.3"
+    "vuetify": "^4.2.4",
+    "ws": "^8.22.0"
   },
   "engines": {
     "node": ">=12.20"
@@ -95,5 +97,9 @@
     "Data Science",
     "Database",
     "Data Management"
-  ]
+  ],
+  "dependencies": {
+    "@dxnlab/workers": "link:..\\vite-workers",
+    "vitest": "^5.0.3"
+  }
 }

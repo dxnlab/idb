@@ -65,7 +65,7 @@
  * 
  */
 
-import { expect } from 'expect-webdriverio';
+import { describe, it, expect, } from 'vitest';
 // dataset provided from simple network
 const storeDefinitions = {
   nodes: {

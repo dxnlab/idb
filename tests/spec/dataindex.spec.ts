@@ -1,7 +1,6 @@
-import { expect } from "expect-webdriverio";
-import { setup, teardown, trx } from './tests';
-import StoreProxy from "./store";
-import IndexProxy from "./dataindex";
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { setup, teardown, trx } from '../../src/idb/tests';
+import IndexProxy from "../../src/idb/dataindex";
 
 describe("IndexProxy wrapper tests", async () => {
   let db: IDBDatabase;
@@ -10,7 +9,7 @@ describe("IndexProxy wrapper tests", async () => {
   // @before 
   //  - migrate data/schema/items.simple database [items] with random unique name
   //  - add random items
-  before(async () => {
+  beforeAll(async () => {
     db = await setup(1, {
       [storeName]: {
         key: 'id',
@@ -35,7 +34,7 @@ describe("IndexProxy wrapper tests", async () => {
   });
 
   // @after - drop the migrated database
-  after(async () => {
+  afterAll(async () => {
     await teardown(db);
   });
 

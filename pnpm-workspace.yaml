@@ -1,13 +1,9 @@
 allowBuilds:
+  '@parcel/watcher': true
   '@swc/core': true
   edgedriver: true
   esbuild: true
   geckodriver: true
 
-ignoredBuiltDependencies:
-  - '@swc/core'
-  - edgedriver
-  - geckodriver
-
-onlyBuiltDependencies:
-  - esbuild
+overrides:
+  '@dxnlab/workers': link:../vite-workers
